@@ -68,5 +68,20 @@ Everything runs locally in your browser with zero backend requirements. Your dat
 
 ### Running Locally
 1. Clone the repository:
-   ```bash
-   git clone [https://github.com/YOUR_USERNAME/jee-command-center.git](https://github.com/YOUR_USERNAME/jee-command-center.git)
+   ```bash}_
+   git clone [https://somyal.github.io/Study-website/](https://somyal.github.io/Study-website/)
+   
+   
+💾 Data Backup & Privacy
+
+All data is strictly stored locally on your device. To ensure you never lose your progress:
+
+    Go to Settings & Backup tab inside the dashboard.
+
+    Click ⬇️ Export Data (JSON) to download a complete backup file.
+
+    Use ⬆️ Import Data (JSON) to restore your progress on any new device or browser.
+
+📜 License
+
+Distributed under the MIT License. Feel free to fork, customize, and adapt for your personal study workflow!
