@@ -1,1 +1,99 @@
 @import "tailwindcss";
+
+:root {
+  --bg: #09090b;
+  --bg-c: #0f0f12;
+  --bg-c2: #141418;
+  --bg-c3: #1a1a20;
+  --b: rgba(255, 255, 255, 0.07);
+  --bh: rgba(255, 255, 255, 0.15);
+  --cyan: #06b6d4;
+  --em: #10b981;
+  --vi: #8b5cf6;
+  --am: #f59e0b;
+  --rd: #ef4444;
+  --tp: #f4f4f5;
+  --ts: #a1a1aa;
+  --tm: #71717a;
+  --hdr-bg: rgba(9, 9, 11, 0.92);
+}
+
+html.light, body.light {
+  --bg: #f8fafc;
+  --bg-c: #ffffff;
+  --bg-c2: #f1f5f9;
+  --bg-c3: #e2e8f0;
+  --b: #cbd5e1;
+  --bh: #94a3b8;
+  --cyan: #0284c7;
+  --em: #059669;
+  --vi: #7c3aed;
+  --am: #d97706;
+  --rd: #dc2626;
+  --tp: #0f172a;
+  --ts: #334155;
+  --tm: #64748b;
+  --hdr-bg: rgba(248, 250, 252, 0.92);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--tp);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--bh);
+  border-radius: 9999px;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Fullscreen CSS rules */
+:fullscreen, :-webkit-full-screen, :-moz-full-screen, :-ms-fullscreen {
+  background-color: var(--bg) !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  padding: 16px !important;
+  overflow-y: auto !important;
+  box-sizing: border-box !important;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.15s ease-out forwards;
+}
+
+.animate-slideInRight {
+  animation: slideInRight 0.2s ease-out forwards;
+}
