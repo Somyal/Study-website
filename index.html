@@ -180,6 +180,35 @@ body{background:var(--bg);color:var(--tp);font-family:'Inter',sans-serif;overflo
 /* Focus iframe */
 #fiframe{border:none;border-radius:12px;width:100%;height:500px;background:var(--bg-c)}
 
+/* Fullscreen: make the iframe fill the whole viewport with no dead space */
+:fullscreen #fiframe,
+:-webkit-full-screen #fiframe,
+:-moz-full-screen #fiframe,
+:-ms-fullscreen #fiframe{
+  height:calc(100vh - 50px)!important;
+  width:100%!important;
+  border-radius:0!important;
+}
+#fp-iframe-wrap:fullscreen,
+#fp-iframe-wrap:-webkit-full-screen,
+#fp-iframe-wrap:-moz-full-screen,
+#fp-iframe-wrap:-ms-fullscreen{
+  height:100vh!important;
+  width:100vw!important;
+  display:flex!important;
+  flex-direction:column!important;
+  background:var(--bg)!important;
+  border-radius:0!important;
+  padding:0!important;
+}
+/* The inner top bar inside fullscreen should stay at a fixed 50px */
+#fp-iframe-wrap:fullscreen > div:first-child,
+#fp-iframe-wrap:-webkit-full-screen > div:first-child{
+  height:50px;
+  border-radius:0;
+  flex-shrink:0;
+}
+
 /* Gauge */
 .garc{stroke-linecap:round}
 
@@ -763,7 +792,32 @@ const SK = 'jeeCommandCenter_v3';
 let S = {};
 
 function defS(){return{chapters:{},tests:[],studyLogs:[],badges:{},goals:{pc:80,ps:75,cc:80,cs:75,mc:80,ms:75},dates:{m1:'2027-01-20',m2:'2027-04-02',ad:'2027-05-23'},settings:{dt:8,tt:200},streak:{count:0,last:null},xp:0,focusUrl:'https://www.pw.live'};}
-function loadS(){try{const r=localStorage.getItem(SK);if(r){const sv=JSON.parse(r);S=Object.assign(defS(),sv);['chapters','tests','studyLogs','badges','goals','dates','settings','streak'].forEach(k=>{if(!S[k])S[k]=defS()[k];});if(S.xp===undefined)S.xp=0;}}catch(e){S=defS();}}
+// Future fallbacks used whenever a saved date is missing, unparseable, or already in the past.
+const FUTURE_DATES={m1:'2027-01-20',m2:'2027-04-02',ad:'2027-05-25'};
+function _sanitizeDates(){
+  const todayMs=new Date().setHours(0,0,0,0);
+  ['m1','m2','ad'].forEach(key=>{
+    const ds=S.dates[key];
+    // Replace if absent, whitespace-only, or the parsed date is <= today
+    if(!ds||ds.trim()===''){ S.dates[key]=FUTURE_DATES[key]; return; }
+    const t=new Date(ds.trim()+'T12:00:00');
+    if(isNaN(t.getTime())||t.getTime()<=todayMs) S.dates[key]=FUTURE_DATES[key];
+  });
+}
+function loadS(){
+  try{
+    const r=localStorage.getItem(SK);
+    if(r){
+      const sv=JSON.parse(r);
+      S=Object.assign(defS(),sv);
+      ['chapters','tests','studyLogs','badges','goals','dates','settings','streak']
+        .forEach(k=>{if(!S[k])S[k]=defS()[k];});
+      if(S.xp===undefined)S.xp=0;
+    }
+  }catch(e){ S=defS(); }
+  // Always ensure exam dates are in the future before any countdown renders
+  _sanitizeDates();
+}
 function saveS(){try{localStorage.setItem(SK,JSON.stringify(S));}catch(e){}}
 function gCh(id){if(!S.chapters[id])S.chapters[id]={stages:{theory:false,dpp:false,pyq:false,revision:false},stars:0,backlog:false,revisionDates:[]};return S.chapters[id];}
 
