@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, sans-serif;
+      width: 280px;
+      padding: 16px;
+      background: #0e0e10;
+      color: #e8e4df;
+    }
+    h1 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #c9a84c;
+      margin-bottom: 12px;
+    }
+    .status {
+      background: #17171a;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: #9d9a95;
+    }
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #6b6863;
+    }
+    .dot.on { background: #4a9e7a; box-shadow: 0 0 8px rgba(74,158,122,0.6); }
+    .action {
+      display: block;
+      width: 100%;
+      background: #c9a84c;
+      color: #0e0e10;
+      text-align: center;
+      padding: 10px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 0.75rem;
+    }
+    .hint {
+      font-size: 0.65rem;
+      color: #6b6863;
+      margin-top: 10px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>🛡️ JEE Focus Shield</h1>
+  <div class="status">
+    <div class="row">
+      <span>Blocker</span>
+      <span id="statusText">Inactive</span>
+    </div>
+    <div class="row" style="margin-top:8px;">
+      <span>Session</span>
+      <span id="sessionDot" class="dot"></span>
+    </div>
+  </div>
+  <a href="https://somyal.github.io/Study-website/" class="action">Open JEE Dashboard</a>
+  <div class="hint">Toggle blocking by starting a Focus Session in the dashboard.</div>
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { store } from '../store';
-import { Settings, Download, Upload, Trash2, Calendar, Target, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Settings, Download, Upload, Trash2, Calendar, Target, AlertTriangle, CheckCircle2, Shield } from 'lucide-react';
 
 interface SettingsViewProps {
   onShowToast: (msg: string, type?: string) => void;
@@ -167,6 +167,26 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onShowToast }) => {
             <input type="file" accept=".json" onChange={handleImportJSON} className="hidden" />
           </label>
         </div>
+      </div>
+
+      {/* Chrome Extension Setup */}
+      <div className="bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl p-6 space-y-4">
+        <h3 className="text-sm font-extrabold text-[var(--tp)] flex items-center gap-2">
+          <Shield className="w-4 h-4 text-[var(--gold)]" /> Focus Shield Chrome Extension
+        </h3>
+        <p className="text-xs text-[var(--ts)]">
+          Install the companion <strong>JEE Focus Shield</strong> extension to auto-block distracting sites during focus sessions.
+        </p>
+        <ol className="list-decimal list-inside text-xs text-[var(--ts)] space-y-1">
+          <li>Clone/download this repository</li>
+          <li>Open Chrome and go to <code className="bg-[var(--bg-c2)] px-1.5 py-0.5 rounded">chrome://extensions</code></li>
+          <li>Enable <strong>Developer mode</strong> (top-right toggle)</li>
+          <li>Click <strong>Load unpacked</strong> and select the <code className="bg-[var(--bg-c2)] px-1.5 py-0.5 rounded">/extension</code> folder</li>
+          <li>The extension icon will appear in your toolbar</li>
+        </ol>
+        <p className="text-[10px] text-[var(--tm)]">
+          Blocking activates automatically when you start a focus session and deactivates when you end it.
+        </p>
       </div>
 
       {/* Danger Zone */}
