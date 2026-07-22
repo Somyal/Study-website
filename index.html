@@ -45,11 +45,29 @@
 }
 html.light, body.light {
   --bg:#f8fafc;--bg-c:#ffffff;--bg-c2:#f1f5f9;--bg-c3:#e2e8f0;
-  --b:rgba(0,0,0,.08);--bh:rgba(0,0,0,.16);
+  --b:#cbd5e1;--bh:#94a3b8;
   --cyan:#0284c7;--em:#059669;--vi:#7c3aed;--am:#d97706;--rd:#dc2626;
   --tp:#0f172a;--ts:#334155;--tm:#64748b;
   --hdr-bg:rgba(248,250,252,.92);
 }
+/* Global Smooth Theme Transitions */
+body, .card, .cc, .inp, .acc-h, .ntab, .chip, #hdr{transition:background-color .25s,border-color .25s,color .25s,box-shadow .25s,transform .2s}
+
+/* Tab Fade-In Animation */
+@keyframes fadeInUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.tp{animation:fadeInUp .25s ease-out}
+
+/* Spring Bounce Checkboxes */
+@keyframes popCheck{0%{transform:scale(.8)}50%{transform:scale(1.22)}100%{transform:scale(1)}}
+.stc.pop{animation:popCheck .3s ease-out}
+
+/* Light Mode Checkbox Specifics */
+html.light .stc{border:2px solid #cbd5e1;background:#f1f5f9;box-shadow:inset 0 1px 2px rgba(0,0,0,.05)}
+html.light .stc:hover{border-color:#64748b;transform:scale(1.08)}
+html.light .stc.ct{background:#0284c7;border-color:#0284c7;box-shadow:0 0 10px rgba(2,132,199,.4)}
+html.light .stc.cd{background:#7c3aed;border-color:#7c3aed;box-shadow:0 0 10px rgba(124,58,237,.4)}
+html.light .stc.cp{background:#d97706;border-color:#d97706;box-shadow:0 0 10px rgba(217,119,6,.4)}
+html.light .stc.cr{background:#059669;border-color:#059669;box-shadow:0 0 10px rgba(5,150,105,.4)}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
 body{background:var(--bg);color:var(--tp);font-family:'Inter',sans-serif;overflow-x:hidden;min-height:100vh}
@@ -1158,6 +1176,11 @@ function togAcc(h){
 function togSt(id,stage,ev){
   const cd=gCh(id);
   cd.stages[stage]=!cd.stages[stage];
+  const el=document.getElementById('sc3-'+id+'-'+stage);
+  if(el){
+    el.classList.add('pop');
+    setTimeout(()=>el.classList.remove('pop'),320);
+  }
   if(cd.stages[stage]){
     addXP(50,ev);
     if(stage==='revision'){if(!cd.revisionDates)cd.revisionDates=[];cd.revisionDates.push(new Date().toISOString());}
