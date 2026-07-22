@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
 import { store, getLocalDateString } from '../store';
 import { Rocket, Pause, Play, Square, ExternalLink, Maximize2, Minimize2, Coffee, Target, Sparkles, Check } from 'lucide-react';
 
@@ -6,14 +6,72 @@ interface FocusPortalViewProps {
   onShowToast: (msg: string, type?: string) => void;
 }
 
+/**
+ * Isolated iframe shell — only re-renders when `src` or fullscreen class changes.
+ * Critical: must NOT re-mount when the parent stopwatch ticks every second.
+ */
+const StudyIframe = memo(function StudyIframe({
+  src,
+  isFullscreen,
+}: {
+  src: string;
+  isFullscreen: boolean;
+}) {
+  return (
+    <iframe
+      id="fiframe"
+      src={src}
+      // key intentionally omitted / stable — never bind to timer state
+      className={`w-full rounded-xl border-none bg-black flex-1 ${isFullscreen ? 'h-full min-h-[85vh]' : 'h-[600px]'}`}
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+      allowFullScreen
+      title="Focus Portal Study Viewport"
+    />
+  );
+});
+
+function transformUrl(rawUrl: string): string {
+  if (!rawUrl) return 'about:blank';
+  let url = rawUrl.trim();
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    url = 'https://' + url;
+  }
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes('youtube.com') && u.searchParams.get('v')) {
+      return `https://www.youtube.com/embed/${u.searchParams.get('v')}?autoplay=1`;
+    }
+    if (u.hostname.includes('youtu.be')) {
+      const id = u.pathname.replace('/', '');
+      if (id) return `https://www.youtube.com/embed/${id}?autoplay=1`;
+    }
+  } catch {
+    /* keep original */
+  }
+  return url;
+}
+
+function formatTimer(ms: number) {
+  const hh = Math.floor(ms / 3600000);
+  const mm = Math.floor((ms % 3600000) / 60000);
+  const ss = Math.floor((ms % 60000) / 1000);
+  return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+}
+
+function formatBreak(ms: number) {
+  const mm = Math.floor((ms % 3600000) / 60000);
+  const ss = Math.floor((ms % 60000) / 1000);
+  return `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+}
+
 export const FocusPortalView: React.FC<FocusPortalViewProps> = ({ onShowToast }) => {
-  const [state, setState] = useState(store.getState());
-  const [urlInput, setUrlInput] = useState(state.focusUrl || 'https://www.pw.live/study-v2/batches');
+  const [urlInput, setUrlInput] = useState(
+    () => store.getState().focusUrl || 'https://www.pw.live/study-v2/batches'
+  );
+  // Embed URL is set ONCE on launch — never derived from timer state
   const [iframeUrl, setIframeUrl] = useState('');
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [elapsedMs, setElapsedMs] = useState(0);
-  const [breakMs, setBreakMs] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Modal State
@@ -27,22 +85,27 @@ export const FocusPortalView: React.FC<FocusPortalViewProps> = ({ onShowToast })
   const startTimeRef = useRef<number | null>(null);
   const accumulatedRef = useRef<number>(0);
   const breakStartRef = useRef<number | null>(null);
+  const elapsedMsRef = useRef<number>(0);
+  const breakMsRef = useRef<number>(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    const unsubscribe = store.subscribe(() => setState(store.getState()));
-    return unsubscribe;
+  // Imperative timer DOM nodes — updated without React setState so the iframe tree never re-renders on ticks
+  const timerDisplayRef = useRef<HTMLDivElement | null>(null);
+  const breakDisplayRef = useRef<HTMLSpanElement | null>(null);
+
+  const clearTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
   }, []);
 
-  // Timer cleanup on unmount to prevent memory leak
+  // Timer cleanup on unmount
   useEffect(() => {
     return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
+      clearTimer();
     };
-  }, []);
+  }, [clearTimer]);
 
   // Fullscreen change listener
   useEffect(() => {
@@ -65,78 +128,98 @@ export const FocusPortalView: React.FC<FocusPortalViewProps> = ({ onShowToast })
     };
   }, []);
 
-  const transformUrl = (rawUrl: string): string => {
-    if (!rawUrl) return 'about:blank';
-    let url = rawUrl.trim();
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      url = 'https://' + url;
-    }
-    try {
-      const u = new URL(url);
-      if (u.hostname.includes('youtube.com') && u.searchParams.get('v')) {
-        return `https://www.youtube.com/embed/${u.searchParams.get('v')}?autoplay=1`;
+  const startActiveTicker = useCallback(() => {
+    clearTimer();
+    timerRef.current = window.setInterval(() => {
+      if (!startTimeRef.current) return;
+      const ms = accumulatedRef.current + (Date.now() - startTimeRef.current);
+      elapsedMsRef.current = ms;
+      // Patch text only — no setState → no React re-render → iframe stays mounted
+      if (timerDisplayRef.current) {
+        timerDisplayRef.current.textContent = formatTimer(ms);
       }
-      if (u.hostname.includes('youtu.be')) {
-        const id = u.pathname.replace('/', '');
-        if (id) return `https://www.youtube.com/embed/${id}?autoplay=1`;
+    }, 1000);
+  }, [clearTimer]);
+
+  const startBreakTicker = useCallback(() => {
+    clearTimer();
+    timerRef.current = window.setInterval(() => {
+      if (!breakStartRef.current) return;
+      const ms = Date.now() - breakStartRef.current;
+      breakMsRef.current = ms;
+      if (breakDisplayRef.current) {
+        breakDisplayRef.current.textContent = formatBreak(ms);
       }
-    } catch (e) {}
-    return url;
-  };
+    }, 1000);
+  }, [clearTimer]);
 
   const handleLaunch = () => {
+    // Derive embed URL once at launch; store in steady state (not recomputed on ticks)
     const embedUrl = transformUrl(urlInput);
     setIframeUrl(embedUrl);
     store.updateState((draft) => {
       draft.focusUrl = urlInput;
     });
 
-    // Start Session Stopwatch
-    if (timerRef.current) clearInterval(timerRef.current);
+    clearTimer();
     startTimeRef.current = Date.now();
     accumulatedRef.current = 0;
     breakStartRef.current = null;
+    elapsedMsRef.current = 0;
+    breakMsRef.current = 0;
     setIsSessionActive(true);
     setIsPaused(false);
-    setElapsedMs(0);
-    setBreakMs(0);
 
-    timerRef.current = window.setInterval(() => {
-      if (!startTimeRef.current) return;
-      setElapsedMs(accumulatedRef.current + (Date.now() - startTimeRef.current));
-    }, 1000);
+    // Seed display immediately
+    requestAnimationFrame(() => {
+      if (timerDisplayRef.current) {
+        timerDisplayRef.current.textContent = formatTimer(0);
+      }
+    });
 
+    startActiveTicker();
     onShowToast('Focus session launched!', 'violet');
   };
 
   const handleTogglePause = () => {
     if (!isPaused) {
-      // Pause
-      if (timerRef.current) clearInterval(timerRef.current);
+      // Pause active stopwatch, start break stopwatch
+      clearTimer();
       if (startTimeRef.current) {
         accumulatedRef.current += Date.now() - startTimeRef.current;
+        elapsedMsRef.current = accumulatedRef.current;
         startTimeRef.current = null;
       }
       breakStartRef.current = Date.now();
+      breakMsRef.current = 0;
       setIsPaused(true);
 
-      timerRef.current = window.setInterval(() => {
-        if (breakStartRef.current) {
-          setBreakMs(Date.now() - breakStartRef.current);
+      requestAnimationFrame(() => {
+        if (timerDisplayRef.current) {
+          timerDisplayRef.current.textContent = formatTimer(elapsedMsRef.current);
         }
-      }, 1000);
+        if (breakDisplayRef.current) {
+          breakDisplayRef.current.textContent = formatBreak(0);
+        }
+      });
+
+      startBreakTicker();
       onShowToast('Session paused — break timer active', 'amber');
     } else {
       // Resume
-      if (timerRef.current) clearInterval(timerRef.current);
+      clearTimer();
       startTimeRef.current = Date.now();
       breakStartRef.current = null;
+      breakMsRef.current = 0;
       setIsPaused(false);
 
-      timerRef.current = window.setInterval(() => {
-        if (!startTimeRef.current) return;
-        setElapsedMs(accumulatedRef.current + (Date.now() - startTimeRef.current));
-      }, 1000);
+      requestAnimationFrame(() => {
+        if (timerDisplayRef.current) {
+          timerDisplayRef.current.textContent = formatTimer(elapsedMsRef.current);
+        }
+      });
+
+      startActiveTicker();
       onShowToast('Session resumed', 'emerald');
     }
   };
@@ -146,6 +229,8 @@ export const FocusPortalView: React.FC<FocusPortalViewProps> = ({ onShowToast })
     if (!isPaused && startTimeRef.current) {
       totalMs += Date.now() - startTimeRef.current;
     }
+    // Prefer latest ref value if larger (covers in-flight tick)
+    totalMs = Math.max(totalMs, elapsedMsRef.current);
 
     if (totalMs < 5000) {
       onShowToast('Session too short to log (< 5 seconds)', 'rose');
@@ -183,7 +268,7 @@ export const FocusPortalView: React.FC<FocusPortalViewProps> = ({ onShowToast })
           (document as any).msExitFullscreen();
         }
       }
-    } catch (e) {
+    } catch {
       onShowToast('Fullscreen mode encountered an error', 'rose');
     }
   };
@@ -217,30 +302,22 @@ export const FocusPortalView: React.FC<FocusPortalViewProps> = ({ onShowToast })
 
     onShowToast(`Session logged: ${hrs}h & +100 XP!`, 'emerald');
 
-    // Reset Stopwatch
-    if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = null;
+    // Reset stopwatch
+    clearTimer();
     startTimeRef.current = null;
     accumulatedRef.current = 0;
+    elapsedMsRef.current = 0;
+    breakMsRef.current = 0;
     setIsSessionActive(false);
     setIsPaused(false);
     setIsModalOpen(false);
     setQuestions('');
     setNotes('');
+    // Keep iframeUrl so the study page stays loaded after logging
   };
 
-  const formatTimer = (ms: number) => {
-    const hh = Math.floor(ms / 3600000);
-    const mm = Math.floor((ms % 3600000) / 60000);
-    const ss = Math.floor((ms % 60000) / 1000);
-    return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
-  };
-
-  const formatBreak = (ms: number) => {
-    const mm = Math.floor((ms % 3600000) / 60000);
-    const ss = Math.floor((ms % 60000) / 1000);
-    return `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
-  };
+  // Stable pop-out href — only recomputes when the URL input changes, never on timer ticks
+  const popOutHref = useMemo(() => transformUrl(urlInput), [urlInput]);
 
   return (
     <div ref={containerRef} className="space-y-6 bg-[var(--bg)] transition-colors duration-200">
@@ -276,7 +353,7 @@ export const FocusPortalView: React.FC<FocusPortalViewProps> = ({ onShowToast })
             <span>{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</span>
           </button>
           <a
-            href={transformUrl(urlInput)}
+            href={popOutHref}
             target="_blank"
             rel="noopener noreferrer"
             className="px-4 py-2.5 bg-[var(--bg-c2)] border border-[var(--b)] hover:border-[var(--bh)] text-[var(--tp)] font-bold text-xs rounded-xl transition-all flex items-center gap-2"
@@ -287,7 +364,7 @@ export const FocusPortalView: React.FC<FocusPortalViewProps> = ({ onShowToast })
         </div>
       </div>
 
-      {/* Active Session Timer Bar */}
+      {/* Active Session Timer Bar — display nodes updated imperatively */}
       {isSessionActive && (
         <div className="bg-[var(--gold-muted)] border border-[var(--gold-border)] rounded-2xl p-4 flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-4">
@@ -303,11 +380,17 @@ export const FocusPortalView: React.FC<FocusPortalViewProps> = ({ onShowToast })
                 </span>
                 {isPaused && (
                   <span className="text-[10px] bg-[var(--gold-muted)] text-[var(--warning)] border border-[var(--gold-border)] px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
-                    <Coffee className="w-3 h-3" /> Break: {formatBreak(breakMs)}
+                    <Coffee className="w-3 h-3" /> Break:{' '}
+                    <span ref={breakDisplayRef}>{formatBreak(breakMsRef.current)}</span>
                   </span>
                 )}
               </div>
-              <div className="font-mono text-2xl font-black text-[var(--gold)]">{formatTimer(elapsedMs)}</div>
+              <div
+                ref={timerDisplayRef}
+                className="font-mono text-2xl font-black text-[var(--gold)]"
+              >
+                {formatTimer(elapsedMsRef.current)}
+              </div>
             </div>
           </div>
 
@@ -348,13 +431,7 @@ export const FocusPortalView: React.FC<FocusPortalViewProps> = ({ onShowToast })
         </div>
 
         {iframeUrl ? (
-          <iframe
-            id="fiframe"
-            src={iframeUrl}
-            className={`w-full rounded-xl border-none bg-black flex-1 ${isFullscreen ? 'h-full min-h-[85vh]' : 'h-[600px]'}`}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-          />
+          <StudyIframe src={iframeUrl} isFullscreen={isFullscreen} />
         ) : (
           <div className="h-[500px] flex flex-col items-center justify-center text-center text-xs text-[var(--tm)] space-y-2 flex-1">
             <Rocket className="w-10 h-10 text-[var(--gold)]/40" />
@@ -398,7 +475,7 @@ export const FocusPortalView: React.FC<FocusPortalViewProps> = ({ onShowToast })
               <label className="block text-xs font-semibold text-[var(--ts)] mb-1">Session Focus</label>
               <select
                 value={ratio}
-                onChange={(e) => setRatio(e.target.value as any)}
+                onChange={(e) => setRatio(e.target.value as 'practice' | 'lecture' | 'balanced')}
                 className="w-full bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl px-3 py-2 text-xs text-[var(--tp)] outline-none"
               >
                 <option value="practice">Practice / Problem Solving</option>
