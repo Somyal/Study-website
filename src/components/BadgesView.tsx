@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'motion';
+import { motion } from 'motion/react';
 import { store } from '../store';
 import { BADGE_DEFINITIONS } from '../data/badges';
 import { calcUserLevel } from '../utils/calculations';

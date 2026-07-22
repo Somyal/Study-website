@@ -3,7 +3,7 @@ import { store, getLocalDateString, FUTURE_DATES } from '../store';
 import { calcUserLevel, getWeakChapters, calcOverallPct } from '../utils/calculations';
 import { BADGE_DEFINITIONS } from '../data/badges';
 import { BookOpen, Flame, Trophy, Target, Clock, Plus, Zap, AlertTriangle } from 'lucide-react';
-import { motion } from 'motion';
+import { motion } from 'motion/react';
 
 interface DashboardViewProps {
   onShowToast: (msg: string, type?: string) => void;
