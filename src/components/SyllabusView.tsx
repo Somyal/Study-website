@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { SubjectId, Weightage, ChemistrySubtype, Chapter, StageKey } from '../types';
 import { PHYSICS_CHAPTERS, CHEMISTRY_CHAPTERS, MATHEMATICS_CHAPTERS, ALL_CHAPTERS } from '../data/chapters';
 import { PYQ_SHIFTS, TOTAL_PYQ_SHIFTS_COUNT } from '../data/pyqShifts';
@@ -27,7 +27,7 @@ interface SyllabusViewProps {
   selectedChapterId?: string | null;
 }
 
-export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast }) => {
+export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast, selectedChapterId }) => {
   const [state, setState] = useState(store.getState());
   const [activeSubject, setActiveSubject] = useState<SubjectId>('physics');
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,6 +39,22 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast }) => {
 
   // PYQ Shift Tracker Modal State
   const [activePyqChapterId, setActivePyqChapterId] = useState<string | null>(null);
+
+  // Highlight selected chapter from command palette
+  const chapterRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [highlightedIds, setHighlightedIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (selectedChapterId) {
+      setHighlightedIds(new Set([selectedChapterId]));
+      const el = chapterRefs.current[selectedChapterId];
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      const timer = setTimeout(() => setHighlightedIds(new Set()), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [selectedChapterId]);
 
   useEffect(() => {
     const unsubscribe = store.subscribe(() => setState(store.getState()));
@@ -78,9 +94,9 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast }) => {
 
   const isAccordionOpen = (key: string) => openAccordions[key] !== false; // Open by default
 
-  const physPct = calcSubjectPct('physics', state);
-  const chemPct = calcSubjectPct('chemistry', state);
-  const mathPct = calcSubjectPct('mathematics', state);
+  const physPct = useMemo(() => calcSubjectPct('physics', state), [state.chapters]);
+  const chemPct = useMemo(() => calcSubjectPct('chemistry', state), [state.chapters]);
+  const mathPct = useMemo(() => calcSubjectPct('mathematics', state), [state.chapters]);
 
   const activePyqChapter = ALL_CHAPTERS.find((c) => c.id === activePyqChapterId);
   const activePyqData = activePyqChapterId ? store.getChapterData(activePyqChapterId) : null;
@@ -98,13 +114,13 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast }) => {
           }}
           className={`p-5 rounded-2xl text-left border transition-all duration-200 cursor-pointer ${
             activeSubject === 'physics'
-              ? 'bg-cyan-500/10 border-cyan-500/50 shadow-lg shadow-cyan-500/10 scale-[1.01]'
+              ? 'bg-[var(--gold-muted)] border-[var(--gold-border)]'
               : 'bg-[var(--bg-c)] border-[var(--b)] hover:border-[var(--bh)]'
           }`}
         >
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-[var(--bg-c2)] text-[var(--info)] flex items-center justify-center">
                 <Atom className="w-5 h-5" />
               </div>
               <div>
@@ -112,11 +128,11 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast }) => {
                 <div className="text-[11px] text-[var(--tm)]">Mechanics to Modern</div>
               </div>
             </div>
-            <div className="font-mono font-black text-xl text-cyan-400">{physPct}%</div>
+            <div className="font-mono font-black text-xl text-[var(--tp)]">{physPct}%</div>
           </div>
           <div className="w-full h-1.5 bg-[var(--bg-c3)] rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-cyan-600 to-cyan-400 transition-all duration-500"
+              className="h-full bg-[var(--gold)] rounded-full transition-all duration-500"
               style={{ width: `${physPct}%` }}
             />
           </div>
@@ -130,13 +146,13 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast }) => {
           }}
           className={`p-5 rounded-2xl text-left border transition-all duration-200 cursor-pointer ${
             activeSubject === 'chemistry'
-              ? 'bg-emerald-500/10 border-emerald-500/50 shadow-lg shadow-emerald-500/10 scale-[1.01]'
+              ? 'bg-[var(--gold-muted)] border-[var(--gold-border)]'
               : 'bg-[var(--bg-c)] border-[var(--b)] hover:border-[var(--bh)]'
           }`}
         >
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-[var(--bg-c2)] text-[var(--success)] flex items-center justify-center">
                 <FlaskConical className="w-5 h-5" />
               </div>
               <div>
@@ -144,11 +160,11 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast }) => {
                 <div className="text-[11px] text-[var(--tm)]">Physical, Organic, Inorganic</div>
               </div>
             </div>
-            <div className="font-mono font-black text-xl text-emerald-400">{chemPct}%</div>
+            <div className="font-mono font-black text-xl text-[var(--tp)]">{chemPct}%</div>
           </div>
           <div className="w-full h-1.5 bg-[var(--bg-c3)] rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 transition-all duration-500"
+              className="h-full bg-[var(--gold)] rounded-full transition-all duration-500"
               style={{ width: `${chemPct}%` }}
             />
           </div>
@@ -162,13 +178,13 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast }) => {
           }}
           className={`p-5 rounded-2xl text-left border transition-all duration-200 cursor-pointer ${
             activeSubject === 'mathematics'
-              ? 'bg-violet-500/10 border-violet-500/50 shadow-lg shadow-violet-500/10 scale-[1.01]'
+              ? 'bg-[var(--gold-muted)] border-[var(--gold-border)]'
               : 'bg-[var(--bg-c)] border-[var(--b)] hover:border-[var(--bh)]'
           }`}
         >
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-violet-500/20 text-violet-400 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-[var(--bg-c2)] text-[var(--warning)] flex items-center justify-center">
                 <Calculator className="w-5 h-5" />
               </div>
               <div>
@@ -176,11 +192,11 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast }) => {
                 <div className="text-[11px] text-[var(--tm)]">Algebra to Calculus</div>
               </div>
             </div>
-            <div className="font-mono font-black text-xl text-violet-400">{mathPct}%</div>
+            <div className="font-mono font-black text-xl text-[var(--tp)]">{mathPct}%</div>
           </div>
           <div className="w-full h-1.5 bg-[var(--bg-c3)] rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-violet-600 to-violet-400 transition-all duration-500"
+              className="h-full bg-[var(--gold)] rounded-full transition-all duration-500"
               style={{ width: `${mathPct}%` }}
             />
           </div>
@@ -197,7 +213,7 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast }) => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search chapters or topic keywords (e.g. 'rotational', 'mole')..."
-            className="w-full bg-[var(--bg-c2)] border border-[var(--b)] focus:border-cyan-500 rounded-xl pl-9 pr-3 py-2 text-xs text-[var(--tp)] outline-none transition-colors"
+            className="w-full bg-[var(--bg-c2)] border border-[var(--b)] focus:border-[var(--gold)] rounded-xl pl-9 pr-3 py-2 text-xs text-[var(--tp)] outline-none transition-colors"
           />
         </div>
 
@@ -210,7 +226,7 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast }) => {
               onClick={() => setClassFilter(val as any)}
               className={`px-3 py-1 rounded-full font-semibold transition-all cursor-pointer ${
                 classFilter === val
-                  ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40'
+                  ? 'bg-[var(--gold-muted)] text-[var(--gold)] border border-[var(--gold-border)]'
                   : 'bg-[var(--bg-c2)] text-[var(--ts)] border border-[var(--b)] hover:border-[var(--bh)]'
               }`}
             >
@@ -225,11 +241,11 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast }) => {
               onClick={() => setWeightFilter(val as any)}
               className={`px-3 py-1 rounded-full font-semibold transition-all cursor-pointer ${
                 weightFilter === val
-                  ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40'
+                  ? 'bg-[var(--gold-muted)] text-[var(--gold)] border border-[var(--gold-border)]'
                   : 'bg-[var(--bg-c2)] text-[var(--ts)] border border-[var(--b)] hover:border-[var(--bh)]'
               }`}
             >
-              {val === 'all' ? 'All' : val === 'High' ? 'High' : val === 'Medium' ? 'Medium' : 'Low'}
+              {val === 'all' ? 'All' : val}
             </button>
           ))}
 
@@ -237,15 +253,60 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast }) => {
             onClick={() => setBacklogFilter(!backlogFilter)}
             className={`px-3 py-1 rounded-full font-semibold transition-all border flex items-center gap-1 cursor-pointer ${
               backlogFilter
-                ? 'bg-amber-500/20 text-amber-300 border-amber-500/50'
+                ? 'bg-[var(--gold-muted)] text-[var(--warning)] border-[var(--gold-border)]'
                 : 'bg-[var(--bg-c2)] text-[var(--ts)] border-[var(--b)] hover:border-[var(--bh)]'
             }`}
           >
-            <Pin className="w-3 h-3 text-amber-400" />
+            <Pin className="w-3 h-3 text-[var(--warning)]" />
             <span>Backlog</span>
           </button>
         </div>
       </div>
+
+      {/* Bulk Actions */}
+      {filteredChapters.length > 0 && (
+        <div className="bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl p-3 flex items-center justify-between gap-3 flex-wrap">
+          <span className="text-xs font-bold text-[var(--ts)]">Bulk Actions</span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => {
+                filteredChapters.forEach((ch) => {
+                  const cd = store.getChapterData(ch.id);
+                  if (!cd.stages.theory) store.toggleStage(ch.id, 'theory');
+                });
+                onShowToast(`Marked Theory done for ${filteredChapters.length} chapters`, 'emerald');
+              }}
+              className="px-3 py-1.5 bg-[var(--gold-muted)] text-[var(--gold)] border border-[var(--gold-border)] rounded-lg text-xs font-bold hover:bg-[var(--gold-muted)] cursor-pointer"
+            >
+              Mark All Theory
+            </button>
+            <button
+              onClick={() => {
+                filteredChapters.forEach((ch) => {
+                  const cd = store.getChapterData(ch.id);
+                  if (!cd.stages.dpp) store.toggleStage(ch.id, 'dpp');
+                });
+                onShowToast(`Marked DPPs done for ${filteredChapters.length} chapters`, 'emerald');
+              }}
+              className="px-3 py-1.5 bg-[var(--gold-muted)] text-[var(--gold)] border border-[var(--gold-border)] rounded-lg text-xs font-bold hover:bg-[var(--gold-muted)] cursor-pointer"
+            >
+              Mark All DPPs
+            </button>
+            <button
+              onClick={() => {
+                filteredChapters.forEach((ch) => {
+                  const cd = store.getChapterData(ch.id);
+                  if (cd.backlog) store.toggleBacklog(ch.id);
+                });
+                onShowToast('Cleared all backlogs for filtered chapters', 'emerald');
+              }}
+              className="px-3 py-1.5 bg-[var(--bg-c2)] text-[var(--ts)] border border-[var(--b)] rounded-lg text-xs font-bold hover:bg-[var(--bg-c3)] cursor-pointer"
+            >
+              Clear Backlogs
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Chapter Groups Accordion */}
       <div className="space-y-4">
@@ -274,9 +335,9 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast }) => {
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="w-24 h-1.5 bg-[var(--bg-c3)] rounded-full overflow-hidden">
-                      <div className="h-full bg-cyan-400 rounded-full" style={{ width: `${groupPct}%` }} />
+                      <div className="h-full bg-[var(--gold)] rounded-full transition-all duration-500" style={{ width: `${groupPct}%` }} />
                     </div>
-                    <span className="font-mono text-xs font-bold text-cyan-400">{groupPct}%</span>
+                    <span className="font-mono text-xs font-bold text-[var(--gold)]">{groupPct}%</span>
                     <ChevronDown
                       className={`w-4 h-4 text-[var(--tm)] transition-transform duration-200 ${
                         isOpen ? 'rotate-180' : ''
@@ -296,9 +357,14 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast }) => {
                       return (
                         <div
                           key={ch.id}
+                          ref={(el) => { chapterRefs.current[ch.id] = el; }}
                           className={`p-4 rounded-xl border transition-all ${
+                            highlightedIds.has(ch.id)
+                              ? 'ring-2 ring-[var(--gold)] ring-offset-2 ring-offset-[var(--bg-c)]'
+                              : ''
+                          } ${
                             cd.backlog
-                              ? 'bg-amber-500/5 border-amber-500/30'
+                              ? 'bg-[rgba(196,122,43,0.04)] border-[var(--warning)]'
                               : 'bg-[var(--bg-c2)] border-[var(--b)] hover:border-[var(--bh)]'
                           }`}
                         >
@@ -306,26 +372,26 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast }) => {
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-bold text-sm text-[var(--tp)]">{ch.name}</span>
                               <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded border ${
-                                ch.cls === 11 ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30' : 'bg-violet-500/10 text-violet-400 border-violet-500/30'
+                                ch.cls === 11 ? 'bg-[rgba(91,143,168,0.12)] text-[var(--info)] border-[rgba(91,143,168,0.25)]' : 'bg-[var(--gold-muted)] text-[var(--warning)] border-[var(--gold-border)]'
                               }`}>
                                 Class {ch.cls}
                               </span>
                               <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded border ${
-                                ch.weight === 'High' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' : ch.weight === 'Medium' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-slate-500/10 text-slate-400 border-slate-500/30'
+                                ch.weight === 'High' ? 'bg-[rgba(184,84,80,0.12)] text-[var(--error)] border-[rgba(184,84,80,0.25)]' : ch.weight === 'Medium' ? 'bg-[var(--gold-muted)] text-[var(--warning)] border-[var(--gold-border)]' : 'bg-[var(--bg-c2)] text-[var(--ts)] border-[var(--b)]'
                               }`}>
                                 {ch.weight} Weightage
                               </span>
 
                               {/* Spaced Revision Alert Badge */}
                               {revStatus.isDue && (
-                                <span className="text-[10px] bg-rose-500/20 text-rose-300 border border-rose-500/40 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
-                                  <AlertCircle className="w-3 h-3 text-rose-400" /> Due Revision ({revStatus.daysSinceLast}d ago)
+                                <span className="text-[10px] bg-[rgba(184,84,80,0.12)] text-[var(--error)] border border-[rgba(184,84,80,0.25)] px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                                  <AlertCircle className="w-3 h-3 text-[var(--error)]" /> Due Revision ({revStatus.daysSinceLast}d ago)
                                 </span>
                               )}
                             </div>
 
                             <div className="flex items-center gap-3">
-                              <span className="font-mono text-xs font-bold text-cyan-400">{pct}%</span>
+                              <span className="font-mono text-xs font-bold text-[var(--gold)]">{pct}%</span>
                               <button
                                 onClick={() => {
                                   const isAdded = store.toggleBacklog(ch.id);
@@ -333,11 +399,11 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast }) => {
                                 }}
                                 className={`text-xs px-2.5 py-1 rounded-lg border font-semibold transition-all cursor-pointer flex items-center gap-1 ${
                                   cd.backlog
-                                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                                    ? 'bg-[var(--gold-muted)] text-[var(--warning)] border-[var(--gold-border)]'
                                     : 'bg-[var(--bg-c3)] text-[var(--ts)] border-[var(--b)] hover:border-[var(--bh)]'
                                 }`}
                               >
-                                <Pin className="w-3 h-3 text-amber-400" />
+                                <Pin className="w-3 h-3 text-[var(--warning)]" />
                                 <span>{cd.backlog ? '✓ Backlog' : '+ Backlog'}</span>
                               </button>
                             </div>
@@ -355,7 +421,7 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast }) => {
                                 >
                                   <Star
                                     className={`w-4 h-4 ${
-                                      star <= cd.stars ? 'text-amber-400 fill-amber-400' : 'text-slate-600'
+                                      star <= cd.stars ? 'text-[var(--warning)] fill-[var(--warning)]' : 'text-[var(--b)]'
                                     }`}
                                   />
                                 </button>
@@ -373,7 +439,7 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast }) => {
                               }}
                               className={`px-3 py-2 rounded-xl border flex items-center justify-between text-xs font-semibold transition-all cursor-pointer ${
                                 cd.stages.theory
-                                  ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/40'
+                                  ? 'bg-[var(--gold-muted)] text-[var(--gold)] border-[var(--gold-border)]'
                                   : 'bg-[var(--bg-c3)] text-[var(--ts)] border-[var(--b)] hover:border-[var(--bh)]'
                               }`}
                             >
@@ -382,9 +448,9 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast }) => {
                                 <span>Theory</span>
                               </div>
                               <div className={`w-4 h-4 rounded border flex items-center justify-center ${
-                                cd.stages.theory ? 'bg-cyan-400 border-cyan-400 text-black' : 'border-[var(--bh)]'
+                                cd.stages.theory ? 'bg-[var(--gold)] border-[var(--gold)] text-[var(--bg)]' : 'border-[var(--bh)]'
                               }`}>
-                                {cd.stages.theory && <Check className="w-3 h-3 text-black" />}
+                                {cd.stages.theory && <Check className="w-3 h-3 text-[var(--bg)]" />}
                               </div>
                             </button>
 
@@ -396,7 +462,7 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast }) => {
                               }}
                               className={`px-3 py-2 rounded-xl border flex items-center justify-between text-xs font-semibold transition-all cursor-pointer ${
                                 cd.stages.dpp
-                                  ? 'bg-violet-500/20 text-violet-400 border-violet-500/40'
+                                  ? 'bg-[var(--gold-muted)] text-[var(--gold)] border-[var(--gold-border)]'
                                   : 'bg-[var(--bg-c3)] text-[var(--ts)] border-[var(--b)] hover:border-[var(--bh)]'
                               }`}
                             >
@@ -405,9 +471,9 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast }) => {
                                 <span>DPPs</span>
                               </div>
                               <div className={`w-4 h-4 rounded border flex items-center justify-center ${
-                                cd.stages.dpp ? 'bg-violet-400 border-violet-400 text-black' : 'border-[var(--bh)]'
+                                cd.stages.dpp ? 'bg-[var(--gold)] border-[var(--gold)] text-[var(--bg)]' : 'border-[var(--bh)]'
                               }`}>
-                                {cd.stages.dpp && <Check className="w-3 h-3 text-black" />}
+                                {cd.stages.dpp && <Check className="w-3 h-3 text-[var(--bg)]" />}
                               </div>
                             </button>
 
@@ -416,7 +482,7 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast }) => {
                               onClick={() => setActivePyqChapterId(ch.id)}
                               className={`px-3 py-2 rounded-xl border flex items-center justify-between text-xs font-semibold transition-all cursor-pointer ${
                                 pyqInfo.solved > 0
-                                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                                  ? 'bg-[var(--gold-muted)] text-[var(--gold)] border-[var(--gold-border)]'
                                   : 'bg-[var(--bg-c3)] text-[var(--ts)] border-[var(--b)] hover:border-[var(--bh)]'
                               }`}
                               title="Click to view 2019-2025 Shift Paper completion details"
@@ -425,7 +491,7 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast }) => {
                                 <Trophy className="w-3.5 h-3.5" />
                                 <span>PYQs ({pyqInfo.solved}/{pyqInfo.total})</span>
                               </div>
-                              <span className="text-[10px] bg-amber-500/30 text-amber-200 px-1.5 py-0.5 rounded font-mono font-bold">
+                              <span className="text-[10px] bg-[var(--gold-muted)] text-[var(--gold)] px-1.5 py-0.5 rounded font-mono font-bold">
                                 Shifts
                               </span>
                             </button>
@@ -438,7 +504,7 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast }) => {
                               }}
                               className={`px-3 py-2 rounded-xl border flex items-center justify-between text-xs font-semibold transition-all cursor-pointer ${
                                 cd.stages.revision
-                                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                                  ? 'bg-[var(--gold-muted)] text-[var(--gold)] border-[var(--gold-border)]'
                                   : 'bg-[var(--bg-c3)] text-[var(--ts)] border-[var(--b)] hover:border-[var(--bh)]'
                               }`}
                             >
@@ -447,9 +513,9 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast }) => {
                                 <span>Revision</span>
                               </div>
                               <div className={`w-4 h-4 rounded border flex items-center justify-center ${
-                                cd.stages.revision ? 'bg-emerald-400 border-emerald-400 text-black' : 'border-[var(--bh)]'
+                                cd.stages.revision ? 'bg-[var(--gold)] border-[var(--gold)] text-[var(--bg)]' : 'border-[var(--bh)]'
                               }`}>
-                                {cd.stages.revision && <Check className="w-3 h-3 text-black" />}
+                                {cd.stages.revision && <Check className="w-3 h-3 text-[var(--bg)]" />}
                               </div>
                             </button>
                           </div>
@@ -467,13 +533,13 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast }) => {
       {/* PYQ Shift Tracker Modal */}
       {activePyqChapterId && activePyqChapter && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[var(--bg-c)] border border-[var(--bh)] rounded-2xl p-6 w-full max-w-2xl space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl p-6 w-full max-w-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-[var(--b)] pb-3">
               <div>
                 <h3 className="text-base font-extrabold text-[var(--tp)] flex items-center gap-2">
-                  <Trophy className="w-4 h-4 text-amber-400" /> JEE Main PYQ Shift Paper Tracker (2019–2025)
+                  <Trophy className="w-4 h-4 text-[var(--gold)]" /> JEE Main PYQ Shift Paper Tracker (2019–2025)
                 </h3>
-                <div className="text-xs text-cyan-400 font-semibold mt-0.5">
+                <div className="text-xs text-[var(--gold)] font-semibold mt-0.5">
                   {activePyqChapter.name} (Class {activePyqChapter.cls})
                 </div>
               </div>
@@ -486,9 +552,9 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast }) => {
             </div>
 
             {/* Progress Header */}
-            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-center justify-between">
+            <div className="bg-[var(--gold-muted)] border border-[var(--gold-border)] rounded-xl p-4 flex items-center justify-between">
               <div>
-                <div className="text-xs font-bold text-amber-300">
+                <div className="text-xs font-bold text-[var(--gold)]">
                   {pyqStats.solved} of {pyqStats.total} Shift Papers Completed ({Math.round((pyqStats.solved / pyqStats.total) * 100)}%)
                 </div>
                 <div className="text-[11px] text-[var(--ts)] mt-0.5">
@@ -502,7 +568,7 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast }) => {
                     store.selectAllPyqShifts(activePyqChapterId, true);
                     onShowToast('All 16 shifts marked solved!', 'emerald');
                   }}
-                  className="px-3 py-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-lg text-xs font-bold hover:bg-emerald-500/30 cursor-pointer"
+                  className="px-3 py-1.5 bg-[var(--gold-muted)] text-[var(--gold)] border border-[var(--gold-border)] rounded-lg text-xs font-bold hover:bg-[var(--gold-muted)] cursor-pointer"
                 >
                   Select All
                 </button>
@@ -531,7 +597,7 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast }) => {
                     }}
                     className={`p-3 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
                       isSolved
-                        ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 font-bold shadow-md shadow-amber-500/10'
+                        ? 'bg-[var(--gold-muted)] border-[var(--gold-border)] text-[var(--gold)] font-bold'
                         : 'bg-[var(--bg-c2)] border-[var(--b)] text-[var(--ts)] hover:border-[var(--bh)]'
                     }`}
                   >
@@ -540,9 +606,9 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast }) => {
                       <div className="text-[10px] text-[var(--tm)]">JEE Main Shift</div>
                     </div>
                     <div className={`w-4 h-4 rounded border flex items-center justify-center ${
-                      isSolved ? 'bg-amber-400 border-amber-400 text-black' : 'border-[var(--bh)]'
+                      isSolved ? 'bg-[var(--gold)] border-[var(--gold)] text-[var(--bg)]' : 'border-[var(--bh)]'
                     }`}>
-                      {isSolved && <Check className="w-3 h-3 text-black" />}
+                      {isSolved && <Check className="w-3 h-3 text-[var(--bg)]" />}
                     </div>
                   </button>
                 );
@@ -552,7 +618,7 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast }) => {
             <div className="pt-2 text-right">
               <button
                 onClick={() => setActivePyqChapterId(null)}
-                className="px-5 py-2 bg-gradient-to-r from-cyan-600 to-cyan-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-cyan-500/20 cursor-pointer"
+                className="px-5 py-2 bg-[var(--gold)] text-[var(--bg)] text-xs font-bold rounded-xl hover:bg-[var(--gold-hover)] cursor-pointer"
               >
                 Done
               </button>

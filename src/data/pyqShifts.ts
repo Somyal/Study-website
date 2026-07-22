@@ -25,3 +25,4 @@ export const PYQ_SHIFTS: PyqShiftDefinition[] = [
 ];
 
 export const TOTAL_PYQ_SHIFTS_COUNT = PYQ_SHIFTS.length; // 16 total shift sessions
+export const PYQ_SHIFT_KEYS = PYQ_SHIFTS.map((s) => s.key);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { ALL_CHAPTERS } from '../data/chapters';
 import { store } from '../store';
 import { StageKey } from '../types';
@@ -27,22 +28,22 @@ export const BacklogView: React.FC<BacklogViewProps> = ({ onShowToast }) => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-extrabold text-[var(--tp)] flex items-center gap-2">
-            <Pin className="w-5 h-5 text-amber-400" /> Backlog Manager
+            <Pin className="w-5 h-5 text-[var(--warning)]" /> Backlog Manager
           </h2>
           <p className="text-xs text-[var(--tm)] mt-1">
             Chapters explicitly flagged for priority attention and catch-up study sessions.
           </p>
         </div>
-        <div className="text-xs font-mono font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30 px-3 py-1.5 rounded-xl">
+        <div className="text-xs font-mono font-bold bg-[var(--gold-muted)] text-[var(--gold)] border border-[var(--gold-border)] px-3 py-1.5 rounded-xl">
           {backlogChapters.length} Chapters Flagged
         </div>
       </div>
 
       {backlogChapters.length === 0 ? (
         <div className="p-12 text-center bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl space-y-2">
-          <Sparkles className="w-10 h-10 text-emerald-400 mx-auto" />
+          <Sparkles className="w-10 h-10 text-[var(--gold)] mx-auto" />
           <div className="text-sm font-bold text-[var(--tp)]">No chapters in backlog!</div>
-          <div className="text-xs text-[var(--tm)]">You are completely up to date. Keep up the great work!</div>
+          <div className="text-xs text-[var(--ts)]">You are completely up to date. Keep up the great work!</div>
         </div>
       ) : (
         <div className="space-y-3">
@@ -57,17 +58,20 @@ export const BacklogView: React.FC<BacklogViewProps> = ({ onShowToast }) => {
             ];
 
             return (
-              <div
+              <motion.div
                 key={ch.id}
-                className="bg-[var(--bg-c)] border border-amber-500/30 rounded-2xl p-5 flex items-center justify-between gap-4 flex-wrap"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25, delay: backlogChapters.indexOf(ch) * 0.04 }}
+                className="bg-[var(--bg-c)] border border-[var(--warning)] rounded-2xl p-5 flex items-center justify-between gap-4 flex-wrap"
               >
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-extrabold text-base text-[var(--tp)]">{ch.name}</span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[var(--bg-c2)] text-[var(--info)] border border-[var(--b)]">
                       {ch.sub.toUpperCase()} • Class {ch.cls}
                     </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/30">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[var(--gold-muted)] text-[var(--warning)] border border-[var(--gold-border)]">
                       {ch.weight} Weight
                     </span>
                   </div>
@@ -77,12 +81,12 @@ export const BacklogView: React.FC<BacklogViewProps> = ({ onShowToast }) => {
                       <span
                         key={st.k}
                         className={`flex items-center gap-1 font-medium ${
-                          cd.stages[st.k] ? 'text-emerald-400 font-bold' : 'text-[var(--tm)]'
+                          cd.stages[st.k] ? 'text-[var(--success)] font-bold' : 'text-[var(--tm)]'
                         }`}
                       >
                         <Check
                           className={`w-3.5 h-3.5 ${
-                            cd.stages[st.k] ? 'text-emerald-400' : 'text-slate-600'
+                            cd.stages[st.k] ? 'text-[var(--success)]' : 'text-[var(--b)]'
                           }`}
                         />
                         {st.label}
@@ -94,15 +98,18 @@ export const BacklogView: React.FC<BacklogViewProps> = ({ onShowToast }) => {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => {
+                      const wasBacklog = cd.backlog;
                       store.toggleBacklog(ch.id);
-                      onShowToast('Cleared from Backlog!', 'emerald');
+                      onShowToast('Cleared from Backlog!', 'emerald', wasBacklog ? () => {
+                        store.toggleBacklog(ch.id);
+                      } : undefined);
                     }}
-                    className="px-4 py-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
+                    className="px-4 py-2 bg-[rgba(74,158,122,0.15)] text-[var(--success)] border border-[var(--success)] hover:bg-[rgba(74,158,122,0.25)] rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
                   >
                     <Trash2 className="w-3.5 h-3.5" /> Resolve & Remove
                   </button>
                 </div>
-              </div>
+              </motion.div>
             );
           })}
         </div>

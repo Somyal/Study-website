@@ -33,6 +33,7 @@ export const MockTestsView: React.FC<MockTestsViewProps> = ({ onShowToast }) => 
   const radarChartRef = useRef<HTMLCanvasElement | null>(null);
   const trendChartInstance = useRef<Chart | null>(null);
   const radarChartInstance = useRef<Chart | null>(null);
+  const lastDeletedRef = useRef<MockTest | null>(null);
 
   useEffect(() => {
     const unsubscribe = store.subscribe(() => setState(store.getState()));
@@ -110,8 +111,8 @@ export const MockTestsView: React.FC<MockTestsViewProps> = ({ onShowToast }) => 
               {
                 label: 'Total Score',
                 data: tests.map((t) => t.to),
-                borderColor: '#06b6d4',
-                backgroundColor: 'rgba(6, 182, 212, 0.1)',
+                borderColor: '#c9a84c',
+                backgroundColor: 'rgba(201, 168, 76, 0.1)',
                 tension: 0.3,
                 fill: true,
                 pointRadius: 4,
@@ -119,7 +120,7 @@ export const MockTestsView: React.FC<MockTestsViewProps> = ({ onShowToast }) => 
               {
                 label: 'Target Score',
                 data: tests.map(() => state.settings.tt || 200),
-                borderColor: 'rgba(245, 158, 11, 0.6)',
+                borderColor: 'rgba(107, 104, 99, 0.6)',
                 borderDash: [5, 5],
                 pointRadius: 0,
                 fill: false,
@@ -157,9 +158,9 @@ export const MockTestsView: React.FC<MockTestsViewProps> = ({ onShowToast }) => 
               {
                 label: 'Average Score',
                 data: [avgPh, avgCh, avgMa],
-                backgroundColor: 'rgba(139, 92, 246, 0.25)',
-                borderColor: '#8b5cf6',
-                pointBackgroundColor: '#8b5cf6',
+                backgroundColor: 'rgba(201, 168, 76, 0.25)',
+                borderColor: '#c9a84c',
+                pointBackgroundColor: '#c9a84c',
               },
             ],
           },
@@ -201,7 +202,7 @@ export const MockTestsView: React.FC<MockTestsViewProps> = ({ onShowToast }) => 
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-extrabold text-[var(--tp)] flex items-center gap-2">
-          <BarChart2 className="w-5 h-5 text-cyan-400" /> Mock Test Analytics & Performance Engine
+          <BarChart2 className="w-5 h-5 text-[var(--gold)]" /> Mock Test Analytics & Performance Engine
         </h2>
       </div>
 
@@ -209,7 +210,7 @@ export const MockTestsView: React.FC<MockTestsViewProps> = ({ onShowToast }) => 
         {/* Form Container */}
         <form onSubmit={handleAddTest} className="bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl p-5 space-y-4">
           <h3 className="text-sm font-extrabold text-[var(--tp)] flex items-center gap-2">
-            <Plus className="w-4 h-4 text-cyan-400" /> Log Mock Test Result
+            <Plus className="w-4 h-4 text-[var(--gold)]" /> Log Mock Test Result
           </h3>
 
           <div>
@@ -220,7 +221,7 @@ export const MockTestsView: React.FC<MockTestsViewProps> = ({ onShowToast }) => 
               value={testName}
               onChange={(e) => setTestName(e.target.value)}
               placeholder="e.g. Allen Minor 04 or MathonGo FT-1"
-              className="w-full bg-[var(--bg-c2)] border border-[var(--b)] focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-[var(--tp)] outline-none"
+              className="w-full bg-[var(--bg-c2)] border border-[var(--b)] focus:border-[var(--gold)] rounded-xl px-3 py-2 text-xs text-[var(--tp)] outline-none"
             />
           </div>
 
@@ -239,7 +240,7 @@ export const MockTestsView: React.FC<MockTestsViewProps> = ({ onShowToast }) => 
           {/* Subject Scores Grid */}
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-[11px] font-bold text-cyan-400 mb-1 flex items-center gap-1">
+              <label className="block text-[11px] font-bold text-[var(--info)] mb-1 flex items-center gap-1">
                 <Atom className="w-3 h-3" /> Physics (/100)
               </label>
               <input
@@ -253,7 +254,7 @@ export const MockTestsView: React.FC<MockTestsViewProps> = ({ onShowToast }) => 
               />
             </div>
             <div>
-              <label className="block text-[11px] font-bold text-emerald-400 mb-1 flex items-center gap-1">
+              <label className="block text-[11px] font-bold text-[var(--success)] mb-1 flex items-center gap-1">
                 <FlaskConical className="w-3 h-3" /> Chemistry (/100)
               </label>
               <input
@@ -267,7 +268,7 @@ export const MockTestsView: React.FC<MockTestsViewProps> = ({ onShowToast }) => 
               />
             </div>
             <div>
-              <label className="block text-[11px] font-bold text-violet-400 mb-1 flex items-center gap-1">
+              <label className="block text-[11px] font-bold text-[var(--gold)] mb-1 flex items-center gap-1">
                 <Calculator className="w-3 h-3" /> Math (/100)
               </label>
               <input
@@ -285,7 +286,7 @@ export const MockTestsView: React.FC<MockTestsViewProps> = ({ onShowToast }) => 
           {/* Auto Total */}
           <div className="bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl p-3 flex items-center justify-between">
             <span className="text-xs font-bold text-[var(--ts)]">Calculated Total Score</span>
-            <span className="font-mono text-base font-black text-cyan-400">{autoTotal} / 300</span>
+            <span className="font-mono text-base font-black text-[var(--gold)]">{autoTotal} / 300</span>
           </div>
 
           {/* Diagnostic Mistakes Breakdown */}
@@ -342,7 +343,7 @@ export const MockTestsView: React.FC<MockTestsViewProps> = ({ onShowToast }) => 
 
           <button
             type="submit"
-            className="w-full py-2.5 bg-gradient-to-r from-cyan-600 to-cyan-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-cyan-500/20 hover:opacity-90 transition-all cursor-pointer"
+            className="w-full py-2.5 bg-[var(--gold)] text-[var(--bg)] font-bold text-xs rounded-xl hover:bg-[var(--gold-hover)] transition-all cursor-pointer"
           >
             Log Test Result (+150 XP)
           </button>
@@ -354,18 +355,18 @@ export const MockTestsView: React.FC<MockTestsViewProps> = ({ onShowToast }) => 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-[var(--bg-c)] border border-[var(--b)] rounded-xl p-3 text-center">
               <div className="text-[10px] font-bold text-[var(--tm)]">AVG TOTAL</div>
-              <div className="font-mono font-black text-lg text-cyan-400">{avgTotal}/300</div>
+              <div className="font-mono font-black text-lg text-[var(--gold)]">{avgTotal}/300</div>
             </div>
             <div className="bg-[var(--bg-c)] border border-[var(--b)] rounded-xl p-3 text-center">
-              <div className="text-[10px] font-bold text-cyan-400">PHYSICS AVG</div>
+              <div className="text-[10px] font-bold text-[var(--info)]">PHYSICS AVG</div>
               <div className="font-mono font-black text-lg text-[var(--tp)]">{avgPh}/100</div>
             </div>
             <div className="bg-[var(--bg-c)] border border-[var(--b)] rounded-xl p-3 text-center">
-              <div className="text-[10px] font-bold text-emerald-400">CHEMISTRY AVG</div>
+              <div className="text-[10px] font-bold text-[var(--success)]">CHEMISTRY AVG</div>
               <div className="font-mono font-black text-lg text-[var(--tp)]">{avgCh}/100</div>
             </div>
             <div className="bg-[var(--bg-c)] border border-[var(--b)] rounded-xl p-3 text-center">
-              <div className="text-[10px] font-bold text-violet-400">MATH AVG</div>
+              <div className="text-[10px] font-bold text-[var(--warning)]">MATH AVG</div>
               <div className="font-mono font-black text-lg text-[var(--tp)]">{avgMa}/100</div>
             </div>
           </div>
@@ -374,7 +375,7 @@ export const MockTestsView: React.FC<MockTestsViewProps> = ({ onShowToast }) => 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl p-4 space-y-2">
               <div className="text-xs font-bold text-[var(--tp)] flex items-center gap-1.5">
-                <LineChart className="w-4 h-4 text-cyan-400" /> Total Score Trend
+                <LineChart className="w-4 h-4 text-[var(--gold)]" /> Total Score Trend
               </div>
               <div className="h-[220px]">
                 <canvas ref={trendChartRef} />
@@ -383,7 +384,7 @@ export const MockTestsView: React.FC<MockTestsViewProps> = ({ onShowToast }) => 
 
             <div className="bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl p-4 space-y-2">
               <div className="text-xs font-bold text-[var(--tp)] flex items-center gap-1.5">
-                <PieChart className="w-4 h-4 text-violet-400" /> Subject Accuracy Radar
+                <PieChart className="w-4 h-4 text-[var(--gold)]" /> Subject Accuracy Radar
               </div>
               <div className="h-[220px]">
                 <canvas ref={radarChartRef} />
@@ -404,9 +405,9 @@ export const MockTestsView: React.FC<MockTestsViewProps> = ({ onShowToast }) => 
                     <tr className="border-b border-[var(--b)] text-[var(--tm)] font-sans text-[11px]">
                       <th className="pb-2 font-bold">Test Name</th>
                       <th className="pb-2 font-bold">Date</th>
-                      <th className="pb-2 font-bold text-cyan-400">Ph</th>
-                      <th className="pb-2 font-bold text-emerald-400">Ch</th>
-                      <th className="pb-2 font-bold text-violet-400">Ma</th>
+                      <th className="pb-2 font-bold text-[var(--info)]">Ph</th>
+                      <th className="pb-2 font-bold text-[var(--success)]">Ch</th>
+                      <th className="pb-2 font-bold text-[var(--warning)]">Ma</th>
                       <th className="pb-2 font-bold text-[var(--tp)]">Total</th>
                       <th className="pb-2 text-right">Action</th>
                     </tr>
@@ -416,17 +417,24 @@ export const MockTestsView: React.FC<MockTestsViewProps> = ({ onShowToast }) => 
                       <tr key={t.id} className="hover:bg-[var(--bg-c2)]">
                         <td className="py-2.5 font-sans font-semibold text-[var(--tp)]">{t.name}</td>
                         <td className="py-2.5 text-[var(--tm)]">{t.date}</td>
-                        <td className="py-2.5 text-cyan-400 font-bold">{t.ph}</td>
-                        <td className="py-2.5 text-emerald-400 font-bold">{t.ch}</td>
-                        <td className="py-2.5 text-violet-400 font-bold">{t.ma}</td>
-                        <td className="py-2.5 font-black text-cyan-400">{t.to}/300</td>
+                        <td className="py-2.5 text-[var(--info)] font-bold">{t.ph}</td>
+                        <td className="py-2.5 text-[var(--success)] font-bold">{t.ch}</td>
+                        <td className="py-2.5 text-[var(--warning)] font-bold">{t.ma}</td>
+                        <td className="py-2.5 font-black text-[var(--gold)]">{t.to}/300</td>
                         <td className="py-2.5 text-right">
                           <button
                             onClick={() => {
+                              const deleted = state.tests.find((x) => x.id === t.id) || null;
+                              lastDeletedRef.current = deleted;
                               store.deleteMockTest(t.id);
-                              onShowToast('Test log deleted', 'amber');
+                              onShowToast('Test log deleted', 'amber', () => {
+                                if (lastDeletedRef.current) {
+                                  store.addMockTest(lastDeletedRef.current, false);
+                                  lastDeletedRef.current = null;
+                                }
+                              });
                             }}
-                            className="text-rose-400 hover:text-rose-300 p-1 cursor-pointer"
+                            className="text-[var(--error)] hover:text-[var(--error)] p-1 cursor-pointer"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>

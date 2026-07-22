@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { store } from '../store';
 import { MistakeItem, ErrorCategory, SubjectId } from '../types';
 import { ALL_CHAPTERS } from '../data/chapters';
@@ -60,16 +61,29 @@ export const MistakeVaultView: React.FC<MistakeVaultViewProps> = ({ onShowToast 
     return true;
   });
 
+  const lastDeletedRef = useRef<MistakeItem | null>(null);
+
   const getErrorBadge = (type: ErrorCategory) => {
     switch (type) {
       case 'calculation':
-        return <span className="bg-rose-500/10 text-rose-400 border border-rose-500/30 px-2 py-0.5 rounded text-[10px] font-bold">Calculation Error</span>;
+        return <span className="bg-[rgba(184,84,80,0.12)] text-[var(--error)] border border-[rgba(184,84,80,0.25)] px-2 py-0.5 rounded text-[10px] font-bold">Calculation Error</span>;
       case 'conceptual':
-        return <span className="bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded text-[10px] font-bold">Conceptual Gap</span>;
+        return <span className="bg-[var(--gold-muted)] text-[var(--warning)] border border-[var(--gold-border)] px-2 py-0.5 rounded text-[10px] font-bold">Conceptual Gap</span>;
       case 'misread':
-        return <span className="bg-violet-500/10 text-violet-400 border border-violet-500/30 px-2 py-0.5 rounded text-[10px] font-bold">Misread Question</span>;
+        return <span className="bg-[rgba(91,143,168,0.12)] text-[var(--info)] border border-[rgba(91,143,168,0.25)] px-2 py-0.5 rounded text-[10px] font-bold">Misread Question</span>;
       case 'timePressure':
-        return <span className="bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 px-2 py-0.5 rounded text-[10px] font-bold">Time Pressure</span>;
+        return <span className="bg-[var(--gold-muted)] text-[var(--gold)] border border-[var(--gold-border)] px-2 py-0.5 rounded text-[10px] font-bold">Time Pressure</span>;
+    }
+  };
+
+  const statusClass = (status: string) => {
+    switch (status) {
+      case 'resolved':
+        return 'bg-[rgba(74,158,122,0.15)] text-[var(--success)] border-[var(--success)]';
+      case 'resolving':
+        return 'bg-[var(--gold-muted)] text-[var(--warning)] border-[var(--gold-border)]';
+      default:
+        return 'bg-[rgba(184,84,80,0.15)] text-[var(--error)] border-[var(--error)]';
     }
   };
 
@@ -77,7 +91,7 @@ export const MistakeVaultView: React.FC<MistakeVaultViewProps> = ({ onShowToast 
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-extrabold text-[var(--tp)] flex items-center gap-2">
-          <AlertTriangle className="w-5 h-5 text-rose-400" /> Mistake Vault & Error Diagnostic Engine
+          <AlertTriangle className="w-5 h-5 text-[var(--error)]" /> Mistake Vault & Error Diagnostic Engine
         </h2>
       </div>
 
@@ -85,7 +99,7 @@ export const MistakeVaultView: React.FC<MistakeVaultViewProps> = ({ onShowToast 
         {/* Form Container */}
         <form onSubmit={handleAddMistake} className="bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl p-5 space-y-4">
           <h3 className="text-sm font-extrabold text-[var(--tp)] flex items-center gap-2">
-            <Plus className="w-4 h-4 text-cyan-400" /> Catalog Wrong Question
+            <Plus className="w-4 h-4 text-[var(--gold)]" /> Catalog Wrong Question
           </h3>
 
           <div>
@@ -96,7 +110,7 @@ export const MistakeVaultView: React.FC<MistakeVaultViewProps> = ({ onShowToast 
               value={questionText}
               onChange={(e) => setQuestionText(e.target.value)}
               placeholder="e.g. Applied parallel axis theorem about non-CM axis in Rotational Motion Q12"
-              className="w-full bg-[var(--bg-c2)] border border-[var(--b)] focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-[var(--tp)] outline-none"
+              className="w-full bg-[var(--bg-c2)] border border-[var(--b)] focus:border-[var(--gold)] rounded-xl px-3 py-2 text-xs text-[var(--tp)] outline-none"
             />
           </div>
 
@@ -158,7 +172,7 @@ export const MistakeVaultView: React.FC<MistakeVaultViewProps> = ({ onShowToast 
 
           <button
             type="submit"
-            className="w-full py-2.5 bg-gradient-to-r from-rose-600 to-rose-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-rose-500/20 hover:opacity-90 transition-all cursor-pointer"
+            className="w-full py-2.5 bg-[var(--error)] text-white font-bold text-xs rounded-xl hover:opacity-90 transition-all cursor-pointer"
           >
             Add to Mistake Vault
           </button>
@@ -169,7 +183,7 @@ export const MistakeVaultView: React.FC<MistakeVaultViewProps> = ({ onShowToast 
           {/* Filter Bar */}
           <div className="bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl p-4 flex items-center justify-between gap-3 flex-wrap text-xs">
             <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-cyan-400" />
+              <Filter className="w-4 h-4 text-[var(--gold)]" />
               <span className="font-bold text-[var(--tp)]">Filter Vault:</span>
             </div>
 
@@ -217,17 +231,20 @@ export const MistakeVaultView: React.FC<MistakeVaultViewProps> = ({ onShowToast 
             </div>
           ) : (
             <div className="space-y-3">
-              {filteredMistakes.map((m) => {
+              {filteredMistakes.map((m, index) => {
                 const chObj = ALL_CHAPTERS.find((c) => c.id === m.chId);
                 return (
-                  <div
+                  <motion.div
                     key={m.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25, delay: index * 0.04 }}
                     className="bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl p-4 space-y-3 hover:border-[var(--bh)] transition-all"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+                          <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-[var(--bg-c2)] text-[var(--info)] border border-[var(--b)]">
                             {m.sub}
                           </span>
                           {getErrorBadge(m.errorType)}
@@ -242,10 +259,17 @@ export const MistakeVaultView: React.FC<MistakeVaultViewProps> = ({ onShowToast 
 
                       <button
                         onClick={() => {
+                          const deleted = state.mistakes.find((x) => x.id === m.id) || null;
+                          lastDeletedRef.current = deleted;
                           store.deleteMistake(m.id);
-                          onShowToast('Removed from Mistake Vault', 'amber');
+                          onShowToast('Removed from Mistake Vault', 'amber', () => {
+                            if (lastDeletedRef.current) {
+                              store.addMistake(lastDeletedRef.current);
+                              lastDeletedRef.current = null;
+                            }
+                          });
                         }}
-                        className="text-[var(--tm)] hover:text-rose-400 p-1 transition-colors cursor-pointer"
+                        className="text-[var(--tm)] hover:text-[var(--error)] p-1 transition-colors cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -253,7 +277,7 @@ export const MistakeVaultView: React.FC<MistakeVaultViewProps> = ({ onShowToast 
 
                     {m.notes && (
                       <div className="bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl p-2.5 text-xs text-[var(--ts)]">
-                        <span className="font-bold text-cyan-400">Key Takeaway:</span> {m.notes}
+                        <span className="font-bold text-[var(--gold)]">Key Takeaway:</span> {m.notes}
                       </div>
                     )}
 
@@ -262,20 +286,14 @@ export const MistakeVaultView: React.FC<MistakeVaultViewProps> = ({ onShowToast 
                       <select
                         value={m.status}
                         onChange={(e) => store.updateMistakeStatus(m.id, e.target.value as any)}
-                        className={`text-xs font-bold rounded-lg px-2.5 py-1 outline-none border cursor-pointer ${
-                          m.status === 'resolved'
-                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                            : m.status === 'resolving'
-                            ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                            : 'bg-rose-500/20 text-rose-300 border-rose-500/40'
-                        }`}
+                        className={`text-xs font-bold rounded-lg px-2.5 py-1 outline-none border cursor-pointer ${statusClass(m.status)}`}
                       >
                         <option value="open">Open</option>
                         <option value="resolving">Resolving</option>
                         <option value="resolved">Resolved ✓</option>
                       </select>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>

@@ -4,6 +4,7 @@ export interface ToastMessage {
   id: string;
   msg: string;
   type: 'emerald' | 'cyan' | 'amber' | 'violet' | 'rose';
+  onUndo?: () => void;
 }
 
 interface ToastContainerProps {
@@ -20,7 +21,7 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts }) => {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col-reverse gap-2 pointer-events-none">
+    <div className="fixed bottom-6 right-6 z-50 flex flex-col-reverse gap-2 pointer-events-none" role="status" aria-live="polite" aria-atomic="true">
       {toasts.map((t) => (
         <div
           key={t.id}
@@ -29,6 +30,16 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts }) => {
           }`}
         >
           <span>{t.msg}</span>
+          {t.onUndo && (
+            <button
+              onClick={() => {
+                t.onUndo?.();
+              }}
+              className="ml-2 underline font-bold text-[var(--tp)] hover:text-[var(--gold)] cursor-pointer"
+            >
+              Undo
+            </button>
+          )}
         </div>
       ))}
     </div>

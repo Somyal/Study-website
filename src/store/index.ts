@@ -1,5 +1,6 @@
 import { AppState, ChapterUserData, MockTest, StudyLog, GoalSettings, ExamDates, UserSettings, StreakData, MistakeItem } from '../types';
 import { ALL_CHAPTERS } from '../data/chapters';
+import { PYQ_SHIFT_KEYS } from '../data/pyqShifts';
 
 const STORAGE_KEY = 'jeeCommandCenter_v4';
 const LEGACY_STORAGE_KEY = 'jeeCommandCenter_v3';
@@ -26,7 +27,7 @@ export function getDefaultState(): AppState {
     tests: [],
     studyLogs: [],
     badges: {},
-    goals: { pc: 80, ps: 75, cc: 80, cs: 75, mc: 80, ms: 75 },
+    goals: { physics: 80, chemistry: 85, mathematics: 75 },
     dates: { ...FUTURE_DATES },
     settings: { dt: 8, tt: 200 },
     streak: { count: 0, last: null, freezes: 1 },
@@ -40,6 +41,12 @@ class Store {
   private state: AppState;
   private listeners: Set<() => void> = new Set();
   private saveTimeout: number | null = null;
+  private idCounter: number = 0;
+
+  private generateId(): number {
+    this.idCounter += 1;
+    return this.idCounter;
+  }
 
   constructor() {
     this.state = this.loadInitialState();
@@ -161,9 +168,8 @@ class Store {
     cd.stages[stage] = !prev;
 
     if (stage === 'pyq') {
-      // Sync shift papers
       const nextVal = !prev;
-      const shifts = ['2025_jan','2025_apr','2024_jan','2024_apr','2023_jan','2023_apr','2022_jun','2022_jul','2021_feb','2021_mar','2021_jul','2021_aug','2020_jan','2020_sep','2019_jan','2019_apr'];
+      const shifts = PYQ_SHIFT_KEYS;
       if (!cd.pyqShifts) cd.pyqShifts = {};
       shifts.forEach((s) => {
         cd.pyqShifts![s] = nextVal;
@@ -171,12 +177,13 @@ class Store {
     }
 
     if (!prev) {
-      // Stage completed
       this.state.xp += 50;
       if (stage === 'revision') {
         if (!cd.revisionDates) cd.revisionDates = [];
         cd.revisionDates.push(new Date().toISOString());
       }
+    } else {
+      this.state.xp -= 50;
     }
     this.notify();
     return !prev;
@@ -188,8 +195,7 @@ class Store {
     const prev = !!cd.pyqShifts[shiftKey];
     cd.pyqShifts[shiftKey] = !prev;
 
-    // Check if all shifts are solved to auto-check stages.pyq
-    const shifts = ['2025_jan','2025_apr','2024_jan','2024_apr','2023_jan','2023_apr','2022_jun','2022_jul','2021_feb','2021_mar','2021_jul','2021_aug','2020_jan','2020_sep','2019_jan','2019_apr'];
+    const shifts = PYQ_SHIFT_KEYS;
     const solvedCount = shifts.filter((s) => !!cd.pyqShifts![s]).length;
     const isAllDone = solvedCount === shifts.length;
 
@@ -198,6 +204,7 @@ class Store {
       this.state.xp += 50;
     } else if (!isAllDone && cd.stages.pyq) {
       cd.stages.pyq = false;
+      this.state.xp -= 50;
     }
 
     this.notify();
@@ -207,12 +214,20 @@ class Store {
   public selectAllPyqShifts(chId: string, selectAll: boolean): void {
     const cd = this.getChapterData(chId);
     if (!cd.pyqShifts) cd.pyqShifts = {};
-    const shifts = ['2025_jan','2025_apr','2024_jan','2024_apr','2023_jan','2023_apr','2022_jun','2022_jul','2021_feb','2021_mar','2021_jul','2021_aug','2020_jan','2020_sep','2019_jan','2019_apr'];
+    const shifts = PYQ_SHIFT_KEYS;
     shifts.forEach((s) => {
       cd.pyqShifts![s] = selectAll;
     });
+
+    const wasPyqComplete = cd.stages.pyq;
     cd.stages.pyq = selectAll;
-    if (selectAll) this.state.xp += 50;
+
+    if (selectAll && !wasPyqComplete) {
+      this.state.xp += 50;
+    } else if (!selectAll && wasPyqComplete) {
+      this.state.xp -= 50;
+    }
+
     this.notify();
   }
 
@@ -229,24 +244,28 @@ class Store {
     return cd.backlog;
   }
 
-  public addMockTest(test: Omit<MockTest, 'id'>): void {
-    const id = Date.now();
+  public addMockTest(test: Omit<MockTest, 'id'>, awardXp: boolean = true): void {
+    const id = this.generateId();
     const newTest: MockTest = { ...test, id };
     this.state.tests.push(newTest);
     this.state.tests.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-    if (newTest.to >= (this.state.settings.tt || 200)) {
+    if (awardXp && newTest.to >= (this.state.settings.tt || 200)) {
       this.state.xp += 200;
     }
     this.notify();
   }
 
   public deleteMockTest(id: number): void {
+    const test = this.state.tests.find(t => t.id === id);
+    if (test && test.to >= (this.state.settings.tt || 200)) {
+      this.state.xp -= 200;
+    }
     this.state.tests = this.state.tests.filter((t) => t.id !== id);
     this.notify();
   }
 
-  public logStudySession(log: Omit<StudyLog, 'id'>): void {
+  public logStudySession(log: Omit<StudyLog, 'id'>, awardXp: boolean = true): void {
     const today = log.date;
     const existingIndex = this.state.studyLogs.findIndex((l) => l.date === today);
 
@@ -257,15 +276,21 @@ class Store {
         id: this.state.studyLogs[existingIndex].id,
       };
     } else {
-      this.state.studyLogs.push({ ...log, id: Date.now() });
-      this.state.xp += 100;
-      this.updateStreak();
+      this.state.studyLogs.push({ ...log, id: this.generateId() });
+      if (awardXp) {
+        this.state.xp += 100;
+        this.updateStreak();
+      }
     }
     this.state.studyLogs.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     this.notify();
   }
 
-  public deleteStudyLog(id: number): void {
+  public deleteStudyLog(id: number | string): void {
+    const log = this.state.studyLogs.find(l => l.id === id);
+    if (log) {
+      this.state.xp -= 100;
+    }
     this.state.studyLogs = this.state.studyLogs.filter((l) => l.id !== id);
     this.notify();
   }
@@ -311,7 +336,7 @@ class Store {
   public addMistake(mistake: Omit<MistakeItem, 'id' | 'dateAdded'>): void {
     const newMistake: MistakeItem = {
       ...mistake,
-      id: 'm_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+      id: 'm_' + this.generateId(),
       dateAdded: getLocalDateString(),
     };
     this.state.mistakes.unshift(newMistake);
@@ -339,6 +364,14 @@ class Store {
     try {
       const imported = JSON.parse(jsonString);
       if (typeof imported !== 'object' || imported === null) return false;
+
+      const currentVersion = getDefaultState().version;
+      const importedVersion = typeof imported.version === 'number' ? imported.version : 0;
+
+      if (importedVersion < currentVersion) {
+        console.warn(`Import rejected: data version ${importedVersion} is older than current version ${currentVersion}`);
+        return false;
+      }
 
       this.state = {
         ...getDefaultState(),

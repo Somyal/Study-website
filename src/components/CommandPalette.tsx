@@ -1,7 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ALL_CHAPTERS } from '../data/chapters';
 import { chapterMatchesSearch } from '../data/keywords';
 import { Search, BookOpen, Layers, Target, Trophy, Clock, Settings, X, Sparkles, AlertTriangle } from 'lucide-react';
+
+function useDebounce<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debounced;
+}
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -17,6 +26,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   onSelectChapter,
 }) => {
   const [query, setQuery] = useState('');
+  const debouncedQuery = useDebounce(query, 150);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -49,12 +59,18 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     { id: 'settings', label: 'Go to Settings & Data Backup', icon: <Settings className="w-4 h-4 text-slate-400" /> },
   ];
 
-  const matchingChapters = ALL_CHAPTERS.filter((ch) =>
-    chapterMatchesSearch(ch.name, query)
-  ).slice(0, 8);
+  const matchingChapters = useMemo(() =>
+    ALL_CHAPTERS.filter((ch) =>
+      chapterMatchesSearch(ch.name, debouncedQuery)
+    ).slice(0, 8),
+    [debouncedQuery]
+  );
 
-  const matchingTabs = tabsList.filter((t) =>
-    t.label.toLowerCase().includes(query.toLowerCase())
+  const matchingTabs = useMemo(() =>
+    tabsList.filter((t) =>
+      t.label.toLowerCase().includes(debouncedQuery.toLowerCase())
+    ),
+    [debouncedQuery]
   );
 
   return (

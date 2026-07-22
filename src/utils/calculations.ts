@@ -1,27 +1,17 @@
 import { SubjectId, AppState, StageKey } from '../types';
 import { ALL_CHAPTERS, PHYSICS_CHAPTERS, CHEMISTRY_CHAPTERS, MATHEMATICS_CHAPTERS } from '../data/chapters';
+import { PYQ_SHIFT_KEYS } from '../data/pyqShifts';
 import { store } from '../store';
 
 export function calcSubjectPct(sub: SubjectId, state?: AppState): number {
   const currentState = state || store.getState();
   const chapters = sub === 'physics' ? PHYSICS_CHAPTERS : sub === 'chemistry' ? CHEMISTRY_CHAPTERS : MATHEMATICS_CHAPTERS;
-  let totalStages = 0;
-  let completedStages = 0;
 
-  chapters.forEach((ch) => {
-    const cd = currentState.chapters[ch.id];
-    if (cd && cd.stages) {
-      const stages: StageKey[] = ['theory', 'dpp', 'pyq', 'revision'];
-      stages.forEach((st) => {
-        totalStages += 1;
-        if (cd.stages[st]) completedStages += 1;
-      });
-    } else {
-      totalStages += 4;
-    }
-  });
+  if (chapters.length === 0) return 0;
 
-  return totalStages > 0 ? Math.round((completedStages / totalStages) * 100) : 0;
+  const chapterPcts = chapters.map((ch) => calcChapterPct(ch.id, currentState));
+  const total = chapterPcts.reduce((acc, p) => acc + p, 0);
+  return Math.round(total / chapters.length);
 }
 
 export function calcOverallPct(state?: AppState): number {
@@ -42,7 +32,7 @@ export function calcChapterPct(chId: string, state?: AppState): number {
   if (cd.stages.revision) totalPct += 25;
 
   // PYQ Stage: proportional shift completion (16 shifts total)
-  const shifts = ['2025_jan','2025_apr','2024_jan','2024_apr','2023_jan','2023_apr','2022_jun','2022_jul','2021_feb','2021_mar','2021_jul','2021_aug','2020_jan','2020_sep','2019_jan','2019_apr'];
+  const shifts = PYQ_SHIFT_KEYS;
   if (cd.pyqShifts && Object.keys(cd.pyqShifts).length > 0) {
     const solved = shifts.filter((s) => !!cd.pyqShifts![s]).length;
     totalPct += Math.round((solved / shifts.length) * 25);
@@ -56,7 +46,7 @@ export function calcChapterPct(chId: string, state?: AppState): number {
 export function getPyqSolvedCount(chId: string, state?: AppState): { solved: number; total: number } {
   const currentState = state || store.getState();
   const cd = currentState.chapters[chId];
-  const shifts = ['2025_jan','2025_apr','2024_jan','2024_apr','2023_jan','2023_apr','2022_jun','2022_jul','2021_feb','2021_mar','2021_jul','2021_aug','2020_jan','2020_sep','2019_jan','2019_apr'];
+  const shifts = PYQ_SHIFT_KEYS;
   const total = shifts.length;
 
   if (!cd || !cd.pyqShifts) {

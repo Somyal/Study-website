@@ -1,57 +1,130 @@
 @import "tailwindcss";
 
+/* ============================================================
+   DESIGN TOKENS — Dark Theme (Default)
+   ============================================================ */
 :root {
-  --bg: #09090b;
-  --bg-c: #0f0f12;
-  --bg-c2: #141418;
-  --bg-c3: #1a1a20;
-  --b: rgba(255, 255, 255, 0.07);
-  --bh: rgba(255, 255, 255, 0.15);
-  --cyan: #06b6d4;
-  --em: #10b981;
-  --vi: #8b5cf6;
-  --am: #f59e0b;
-  --rd: #ef4444;
-  --tp: #f4f4f5;
-  --ts: #a1a1aa;
-  --tm: #71717a;
-  --hdr-bg: rgba(9, 9, 11, 0.92);
+  --bg: #0e0e10;
+  --bg-c: #17171a;
+  --bg-c2: #1f1f23;
+  --bg-c3: #27272c;
+  --b: rgba(255, 255, 255, 0.06);
+  --bh: rgba(255, 255, 255, 0.12);
+  --tp: #e8e4df;
+  --ts: #9d9a95;
+  --tm: #6b6863;
+  --hdr-bg: rgba(14, 14, 16, 0.92);
+  --gold: #c9a84c;
+  --gold-hover: #d4b562;
+  --gold-muted: rgba(201, 168, 76, 0.12);
+  --gold-border: rgba(201, 168, 76, 0.25);
+  --success: #4a9e7a;
+  --warning: #c47a2b;
+  --info: #5b8fa8;
+  --error: #b85450;
+
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 400ms;
+  --stagger: 30ms;
+
+  --font-heading: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Manrope', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'JetBrains Mono', monospace;
 }
 
+/* ============================================================
+   DESIGN TOKENS — Light Theme
+   ============================================================ */
 html.light, body.light {
-  --bg: #f8fafc;
+  --bg: #faf8f5;
   --bg-c: #ffffff;
-  --bg-c2: #f1f5f9;
-  --bg-c3: #e2e8f0;
-  --b: #cbd5e1;
-  --bh: #94a3b8;
-  --cyan: #0284c7;
-  --em: #059669;
-  --vi: #7c3aed;
-  --am: #d97706;
-  --rd: #dc2626;
-  --tp: #0f172a;
-  --ts: #334155;
-  --tm: #64748b;
-  --hdr-bg: rgba(248, 250, 252, 0.92);
+  --bg-c2: #f3f0ea;
+  --bg-c3: #ece8e0;
+  --b: #d8d3c8;
+  --bh: #c4bfb4;
+  --tp: #1a1816;
+  --ts: #6b6560;
+  --tm: #9d968e;
+  --hdr-bg: rgba(250, 248, 245, 0.92);
+  --gold: #a07d2e;
+  --gold-hover: #b08f3a;
+  --gold-muted: rgba(160, 125, 46, 0.12);
+  --gold-border: rgba(160, 125, 46, 0.25);
+  --success: #3d8b6a;
+  --warning: #b06b22;
+  --info: #4a8aaa;
+  --error: #c44a46;
 }
 
+/* ============================================================
+   NOISE TEXTURE OVERLAY
+   ============================================================ */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.35;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+/* ============================================================
+   GLOBAL BASE STYLES
+   ============================================================ */
 * {
   box-sizing: border-box;
+}
+
+html, body, #root {
+  min-height: 100vh;
 }
 
 body {
   background-color: var(--bg);
   color: var(--tp);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-body);
+  line-height: 1.65;
   overflow-x: hidden;
-  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom Scrollbars */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+code, pre, kbd, .font-mono {
+  font-family: var(--font-mono);
+}
+
+a {
+  color: var(--gold);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--gold-hover);
+}
+
+::selection {
+  background-color: var(--gold-muted);
+  color: var(--tp);
+}
+
+/* ============================================================
+   CUSTOM SCROLLBARS
+   ============================================================ */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
@@ -59,6 +132,9 @@ body {
 ::-webkit-scrollbar-thumb {
   background: var(--bh);
   border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ts);
 }
 
 .scrollbar-none::-webkit-scrollbar {
@@ -69,31 +145,124 @@ body {
   scrollbar-width: none;
 }
 
-/* Fullscreen CSS rules */
+/* ============================================================
+   FULLSCREEN
+   ============================================================ */
 :fullscreen, :-webkit-full-screen, :-moz-full-screen, :-ms-fullscreen {
   background-color: var(--bg) !important;
   width: 100vw !important;
   height: 100vh !important;
-  padding: 16px !important;
+  padding: 24px !important;
   overflow-y: auto !important;
   box-sizing: border-box !important;
 }
 
-/* Animations */
-@keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.98); }
+/* ============================================================
+   FOCUS STYLES
+   ============================================================ */
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ============================================================
+   ANIMATION KEYFRAMES
+   ============================================================ */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
   to { opacity: 1; transform: scale(1); }
 }
 
 @keyframes slideInRight {
-  from { opacity: 0; transform: translateX(30px); }
+  from { opacity: 0; transform: translateX(24px); }
   to { opacity: 1; transform: translateX(0); }
 }
 
-.animate-fadeIn {
-  animation: fadeIn 0.15s ease-out forwards;
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ============================================================
+   ANIMATION UTILITY CLASSES
+   ============================================================ */
+.animate-fadeInUp {
+  animation: fadeInUp var(--duration-normal) var(--ease-out) forwards;
+}
+
+.animate-fadeInDown {
+  animation: fadeInDown var(--duration-normal) var(--ease-out) forwards;
+}
+
+.animate-scaleIn {
+  animation: scaleIn var(--duration-normal) var(--ease-spring) forwards;
 }
 
 .animate-slideInRight {
-  animation: slideInRight 0.2s ease-out forwards;
+  animation: slideInRight var(--duration-normal) var(--ease-out) forwards;
+}
+
+.animate-fadeIn {
+  animation: fadeIn var(--duration-fast) var(--ease-out) forwards;
+}
+
+/* Stagger delays */
+.stagger-1 { animation-delay: calc(var(--stagger) * 1); }
+.stagger-2 { animation-delay: calc(var(--stagger) * 2); }
+.stagger-3 { animation-delay: calc(var(--stagger) * 3); }
+.stagger-4 { animation-delay: calc(var(--stagger) * 4); }
+.stagger-5 { animation-delay: calc(var(--stagger) * 5); }
+
+/* ============================================================
+   REDUCED MOTION
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ============================================================
+   SIDEBAR TRANSITION
+   ============================================================ */
+.sidebar-transition {
+  transition: width var(--duration-normal) var(--ease-out),
+              transform var(--duration-normal) var(--ease-out);
+}
+
+/* ============================================================
+   BUTTON PRESS FEEDBACK
+   ============================================================ */
+.btn-press {
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.btn-press:active {
+  transform: scale(0.97);
+}
+
+/* ============================================================
+   CARD DEPTH UTILITIES (subtle shadows — no neon glow)
+   ============================================================ */
+.shadow-card {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.shadow-elevated {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }

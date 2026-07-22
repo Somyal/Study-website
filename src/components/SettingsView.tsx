@@ -66,7 +66,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onShowToast }) => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-extrabold text-[var(--tp)] flex items-center gap-2">
-          <Settings className="w-5 h-5 text-slate-400" /> Settings & Data Management
+          <Settings className="w-5 h-5 text-[var(--gold)]" /> Settings & Data Management
         </h2>
       </div>
 
@@ -75,11 +75,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onShowToast }) => {
         {/* Exam Dates */}
         <div className="space-y-3">
           <h3 className="text-sm font-extrabold text-[var(--tp)] flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-cyan-400" /> JEE Exam Dates Configuration
+            <Calendar className="w-4 h-4 text-[var(--gold)]" /> JEE Exam Dates Configuration
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-cyan-400 mb-1">JEE Main Session 1</label>
+              <label className="block text-xs font-semibold text-[var(--info)] mb-1">JEE Main Session 1</label>
               <input
                 type="date"
                 value={m1Date}
@@ -88,7 +88,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onShowToast }) => {
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-violet-400 mb-1">JEE Main Session 2</label>
+              <label className="block text-xs font-semibold text-[var(--info)] mb-1">JEE Main Session 2</label>
               <input
                 type="date"
                 value={m2Date}
@@ -97,7 +97,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onShowToast }) => {
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-amber-400 mb-1">JEE Advanced</label>
+              <label className="block text-xs font-semibold text-[var(--warning)] mb-1">JEE Advanced</label>
               <input
                 type="date"
                 value={adDate}
@@ -111,7 +111,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onShowToast }) => {
         {/* Target Thresholds */}
         <div className="space-y-3 pt-4 border-t border-[var(--b)]">
           <h3 className="text-sm font-extrabold text-[var(--tp)] flex items-center gap-2">
-            <Target className="w-4 h-4 text-emerald-400" /> Daily Target Thresholds
+            <Target className="w-4 h-4 text-[var(--gold)]" /> Daily Target Thresholds
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -141,7 +141,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onShowToast }) => {
 
         <button
           type="submit"
-          className="px-6 py-2.5 bg-gradient-to-r from-cyan-600 to-cyan-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-cyan-500/20 hover:opacity-90 transition-all flex items-center gap-2 cursor-pointer"
+          className="px-6 py-2.5 bg-[var(--gold)] text-[var(--bg)] font-bold text-xs rounded-xl hover:bg-[var(--gold-hover)] transition-all flex items-center gap-2 cursor-pointer"
         >
           <CheckCircle2 className="w-4 h-4" /> Save Configuration
         </button>
@@ -157,12 +157,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onShowToast }) => {
         <div className="flex items-center gap-3 flex-wrap">
           <button
             onClick={handleExportJSON}
-            className="px-4 py-2.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 rounded-xl font-bold text-xs transition-all flex items-center gap-2 cursor-pointer"
+            className="px-4 py-2.5 bg-[rgba(74,158,122,0.15)] text-[var(--success)] border border-[var(--success)] hover:bg-[rgba(74,158,122,0.25)] rounded-xl font-bold text-xs transition-all flex items-center gap-2 cursor-pointer"
           >
             <Download className="w-4 h-4" /> Download JSON Backup
           </button>
 
-          <label className="px-4 py-2.5 bg-violet-500/20 text-violet-300 border border-violet-500/40 hover:bg-violet-500/30 rounded-xl font-bold text-xs transition-all flex items-center gap-2 cursor-pointer">
+          <label className="px-4 py-2.5 bg-[rgba(91,143,168,0.15)] text-[var(--info)] border border-[var(--info)] hover:bg-[rgba(91,143,168,0.25)] rounded-xl font-bold text-xs transition-all flex items-center gap-2 cursor-pointer">
             <Upload className="w-4 h-4" /> Import Backup JSON
             <input type="file" accept=".json" onChange={handleImportJSON} className="hidden" />
           </label>
@@ -170,8 +170,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onShowToast }) => {
       </div>
 
       {/* Danger Zone */}
-      <div className="bg-rose-500/5 border border-rose-500/30 rounded-2xl p-6 space-y-3">
-        <h3 className="text-sm font-extrabold text-rose-400 flex items-center gap-2">
+      <div className="bg-[rgba(184,84,80,0.08)] border border-[var(--error)] rounded-2xl p-6 space-y-3">
+        <h3 className="text-sm font-extrabold text-[var(--error)] flex items-center gap-2">
           <AlertTriangle className="w-4 h-4" /> Danger Zone
         </h3>
         <p className="text-xs text-[var(--ts)]">
@@ -179,7 +179,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onShowToast }) => {
         </p>
         <button
           onClick={() => setIsResetModalOpen(true)}
-          className="px-4 py-2 bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500/30 rounded-xl font-bold text-xs transition-all flex items-center gap-2 cursor-pointer"
+          className="px-4 py-2 bg-[var(--error)] text-white rounded-xl font-bold text-xs hover:opacity-90 transition-all flex items-center gap-2 cursor-pointer"
         >
           <Trash2 className="w-4 h-4" /> Reset All Data
         </button>
@@ -187,9 +187,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onShowToast }) => {
 
       {/* Reset Confirmation Modal */}
       {isResetModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[var(--bg-c)] border border-rose-500/40 rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl">
-            <h3 className="text-lg font-extrabold text-rose-400 flex items-center gap-2">
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+          <div className="bg-[var(--bg-c)] border border-[var(--error)] rounded-2xl p-6 w-full max-w-md space-y-4">
+            <h3 className="text-lg font-extrabold text-[var(--error)] flex items-center gap-2">
               <AlertTriangle className="w-5 h-5" /> Reset All Data
             </h3>
             <p className="text-xs text-[var(--ts)]">
@@ -204,7 +204,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onShowToast }) => {
               </button>
               <button
                 onClick={handleResetData}
-                className="px-5 py-2 bg-rose-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-rose-600/30 cursor-pointer"
+                className="px-5 py-2 bg-[var(--error)] text-white rounded-xl text-xs font-bold cursor-pointer"
               >
                 Reset Everything
               </button>

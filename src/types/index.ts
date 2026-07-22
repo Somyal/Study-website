@@ -55,12 +55,6 @@ export interface GoalSettings {
   physics?: number;
   chemistry?: number;
   mathematics?: number;
-  pc?: number;
-  ps?: number;
-  cc?: number;
-  cs?: number;
-  mc?: number;
-  ms?: number;
 }
 
 export interface ExamDates {

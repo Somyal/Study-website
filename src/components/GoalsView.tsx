@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { store } from '../store';
 import { calcSubjectPct } from '../utils/calculations';
 import { Target, Atom, FlaskConical, Calculator, LineChart } from 'lucide-react';
@@ -14,9 +14,9 @@ export const GoalsView: React.FC = () => {
     return unsubscribe;
   }, []);
 
-  const physPct = calcSubjectPct('physics', state);
-  const chemPct = calcSubjectPct('chemistry', state);
-  const mathPct = calcSubjectPct('mathematics', state);
+  const physPct = useMemo(() => calcSubjectPct('physics', state), [state.chapters]);
+  const chemPct = useMemo(() => calcSubjectPct('chemistry', state), [state.chapters]);
+  const mathPct = useMemo(() => calcSubjectPct('mathematics', state), [state.chapters]);
 
   const physTarget = state.goals.physics || 80;
   const chemTarget = state.goals.chemistry || 85;
@@ -46,9 +46,9 @@ export const GoalsView: React.FC = () => {
         data: {
           labels: tests.map((t) => t.name || t.date),
           datasets: [
-            { label: 'Physics', data: tests.map((t) => t.ph), borderColor: '#06b6d4', tension: 0.3 },
-            { label: 'Chemistry', data: tests.map((t) => t.ch), borderColor: '#10b981', tension: 0.3 },
-            { label: 'Mathematics', data: tests.map((t) => t.ma), borderColor: '#8b5cf6', tension: 0.3 },
+            { label: 'Physics', data: tests.map((t) => t.ph), borderColor: '#5b8fa8', tension: 0.3 },
+            { label: 'Chemistry', data: tests.map((t) => t.ch), borderColor: '#4a9e7a', tension: 0.3 },
+            { label: 'Mathematics', data: tests.map((t) => t.ma), borderColor: '#c9a84c', tension: 0.3 },
           ],
         },
         options: {
@@ -74,22 +74,22 @@ export const GoalsView: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-extrabold text-[var(--tp)] flex items-center gap-2">
-          <Target className="w-5 h-5 text-cyan-400" /> Target Benchmarks & Goal Setting
+          <Target className="w-5 h-5 text-[var(--gold)]" /> Target Benchmarks & Goal Setting
         </h2>
       </div>
 
       {/* Target Subject Progress Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Physics Goal Card */}
-        <div className="bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl p-5 space-y-4">
+        <div className="bg-[var(--bg-c)] border border-[var(--b)] border-l-[var(--info)] rounded-2xl p-5 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400">
+              <div className="p-2 rounded-xl bg-[rgba(91,143,168,0.15)] text-[var(--info)]">
                 <Atom className="w-5 h-5" />
               </div>
               <h3 className="font-extrabold text-sm text-[var(--tp)]">Physics Target</h3>
             </div>
-            <span className="font-mono font-black text-cyan-400 text-lg">{physPct}% / {physTarget}%</span>
+            <span className="font-mono font-black text-[var(--info)] text-lg">{physPct}% / {physTarget}%</span>
           </div>
 
           <div className="space-y-1">
@@ -105,20 +105,20 @@ export const GoalsView: React.FC = () => {
           </div>
 
           <div className="w-full h-2 bg-[var(--bg-c3)] rounded-full overflow-hidden">
-            <div className="h-full bg-cyan-400 rounded-full" style={{ width: `${Math.min(100, (physPct / physTarget) * 100)}%` }} />
+            <div className="h-full bg-[var(--info)] rounded-full transition-all duration-500" style={{ width: `${Math.min(100, (physPct / physTarget) * 100)}%` }} />
           </div>
         </div>
 
         {/* Chemistry Goal Card */}
-        <div className="bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl p-5 space-y-4">
+        <div className="bg-[var(--bg-c)] border border-[var(--b)] border-l-[var(--success)] rounded-2xl p-5 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400">
+              <div className="p-2 rounded-xl bg-[rgba(74,158,122,0.15)] text-[var(--success)]">
                 <FlaskConical className="w-5 h-5" />
               </div>
               <h3 className="font-extrabold text-sm text-[var(--tp)]">Chemistry Target</h3>
             </div>
-            <span className="font-mono font-black text-emerald-400 text-lg">{chemPct}% / {chemTarget}%</span>
+            <span className="font-mono font-black text-[var(--success)] text-lg">{chemPct}% / {chemTarget}%</span>
           </div>
 
           <div className="space-y-1">
@@ -134,20 +134,20 @@ export const GoalsView: React.FC = () => {
           </div>
 
           <div className="w-full h-2 bg-[var(--bg-c3)] rounded-full overflow-hidden">
-            <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${Math.min(100, (chemPct / chemTarget) * 100)}%` }} />
+            <div className="h-full bg-[var(--success)] rounded-full transition-all duration-500" style={{ width: `${Math.min(100, (chemPct / chemTarget) * 100)}%` }} />
           </div>
         </div>
 
         {/* Math Goal Card */}
-        <div className="bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl p-5 space-y-4">
+        <div className="bg-[var(--bg-c)] border border-[var(--b)] border-l-[var(--gold)] rounded-2xl p-5 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-violet-500/20 text-violet-400">
+              <div className="p-2 rounded-xl bg-[var(--gold-muted)] text-[var(--gold)]">
                 <Calculator className="w-5 h-5" />
               </div>
               <h3 className="font-extrabold text-sm text-[var(--tp)]">Math Target</h3>
             </div>
-            <span className="font-mono font-black text-violet-400 text-lg">{mathPct}% / {mathTarget}%</span>
+            <span className="font-mono font-black text-[var(--gold)] text-lg">{mathPct}% / {mathTarget}%</span>
           </div>
 
           <div className="space-y-1">
@@ -163,7 +163,7 @@ export const GoalsView: React.FC = () => {
           </div>
 
           <div className="w-full h-2 bg-[var(--bg-c3)] rounded-full overflow-hidden">
-            <div className="h-full bg-violet-400 rounded-full" style={{ width: `${Math.min(100, (mathPct / mathTarget) * 100)}%` }} />
+            <div className="h-full bg-[var(--gold)] rounded-full transition-all duration-500" style={{ width: `${Math.min(100, (mathPct / mathTarget) * 100)}%` }} />
           </div>
         </div>
       </div>
@@ -171,7 +171,7 @@ export const GoalsView: React.FC = () => {
       {/* Comparison Chart */}
       <div className="bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl p-5 space-y-3">
         <h3 className="text-xs font-bold text-[var(--tp)] flex items-center gap-2">
-          <LineChart className="w-4 h-4 text-cyan-400" /> Subject Score Comparison History
+          <LineChart className="w-4 h-4 text-[var(--gold)]" /> Subject Score Comparison History
         </h3>
         <div className="h-[300px]">
           <canvas ref={chartRef} />
