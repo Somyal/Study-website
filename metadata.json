@@ -1,0 +1,6 @@
+{
+  "name": "JEE Command Center",
+  "description": "Comprehensive JEE Command Center to track JEE Main & Advanced syllabus progress, backlogs, mock test analytics, daily study hours, and study focus portal.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
