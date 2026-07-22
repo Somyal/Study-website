@@ -190,7 +190,7 @@ export const MistakeVaultView: React.FC<MistakeVaultViewProps> = ({ onShowToast 
             <div className="flex items-center gap-2 flex-wrap">
               <select
                 value={filterSub}
-                onChange={(e) => setFilterSub(e.target.value as any)}
+                onChange={(e) => setFilterSub(e.target.value as 'all' | SubjectId)}
                 className="bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl px-2.5 py-1 text-xs text-[var(--tp)] outline-none"
               >
                 <option value="all">All Subjects</option>
@@ -201,7 +201,7 @@ export const MistakeVaultView: React.FC<MistakeVaultViewProps> = ({ onShowToast 
 
               <select
                 value={filterError}
-                onChange={(e) => setFilterError(e.target.value as any)}
+                onChange={(e) => setFilterError(e.target.value as 'all' | ErrorCategory)}
                 className="bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl px-2.5 py-1 text-xs text-[var(--tp)] outline-none"
               >
                 <option value="all">All Error Types</option>
@@ -264,7 +264,7 @@ export const MistakeVaultView: React.FC<MistakeVaultViewProps> = ({ onShowToast 
                           store.deleteMistake(m.id);
                           onShowToast('Removed from Mistake Vault', 'amber', () => {
                             if (lastDeletedRef.current) {
-                              store.addMistake(lastDeletedRef.current);
+                              store.addMistake(lastDeletedRef.current, lastDeletedRef.current.dateAdded);
                               lastDeletedRef.current = null;
                             }
                           });

@@ -51,8 +51,7 @@ export const MockTestsView: React.FC<MockTestsViewProps> = ({ onShowToast }) => 
       return;
     }
 
-    const newTest: MockTest = {
-      id: Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+    const { id: _id, ...testFields } = {
       name: testName.trim(),
       date: testDate || getLocalDateString(),
       ph: typeof phScore === 'number' ? Math.max(0, Math.min(100, phScore)) : 0,
@@ -68,7 +67,9 @@ export const MockTestsView: React.FC<MockTestsViewProps> = ({ onShowToast }) => 
         misread: typeof errMisread === 'number' ? errMisread : 0,
         timePressure: typeof errTime === 'number' ? errTime : 0,
       },
-    };
+    } as MockTest;
+
+    const newTest: Omit<MockTest, 'id'> = testFields;
 
     store.addMockTest(newTest);
     onShowToast(`Logged test score: ${autoTotal}/300! +150 XP`, 'emerald');

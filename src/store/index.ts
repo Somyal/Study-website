@@ -147,6 +147,9 @@ class Store {
   }
 
   public getChapterData(id: string): ChapterUserData {
+    if (!ALL_CHAPTERS.find((ch) => ch.id === id)) {
+      return { stages: { theory: false, dpp: false, pyq: false, revision: false }, pyqShifts: {}, stars: 0, backlog: false, revisionDates: [] };
+    }
     if (!this.state.chapters[id]) {
       this.state.chapters[id] = {
         stages: { theory: false, dpp: false, pyq: false, revision: false },
@@ -184,6 +187,7 @@ class Store {
       }
     } else {
       this.state.xp -= 50;
+      this.state.xp = Math.max(0, this.state.xp);
     }
     this.notify();
     return !prev;
@@ -205,6 +209,7 @@ class Store {
     } else if (!isAllDone && cd.stages.pyq) {
       cd.stages.pyq = false;
       this.state.xp -= 50;
+      this.state.xp = Math.max(0, this.state.xp);
     }
 
     this.notify();
@@ -224,8 +229,10 @@ class Store {
 
     if (selectAll && !wasPyqComplete) {
       this.state.xp += 50;
+      this.state.xp = Math.max(0, this.state.xp);
     } else if (!selectAll && wasPyqComplete) {
       this.state.xp -= 50;
+      this.state.xp = Math.max(0, this.state.xp);
     }
 
     this.notify();
@@ -252,16 +259,18 @@ class Store {
 
     if (awardXp && newTest.to >= (this.state.settings.tt || 200)) {
       this.state.xp += 200;
+      this.state.xp = Math.max(0, this.state.xp);
     }
     this.notify();
   }
 
-  public deleteMockTest(id: number): void {
+  public deleteMockTest(id: number | string): void {
     const test = this.state.tests.find(t => t.id === id);
     if (test && test.to >= (this.state.settings.tt || 200)) {
       this.state.xp -= 200;
+      this.state.xp = Math.max(0, this.state.xp);
     }
-    this.state.tests = this.state.tests.filter((t) => t.id !== id);
+    this.state.tests = this.state.tests.filter((t) => String(t.id) !== String(id));
     this.notify();
   }
 
@@ -279,6 +288,7 @@ class Store {
       this.state.studyLogs.push({ ...log, id: this.generateId() });
       if (awardXp) {
         this.state.xp += 100;
+        this.state.xp = Math.max(0, this.state.xp);
         this.updateStreak();
       }
     }
@@ -290,6 +300,7 @@ class Store {
     const log = this.state.studyLogs.find(l => l.id === id);
     if (log) {
       this.state.xp -= 100;
+      this.state.xp = Math.max(0, this.state.xp);
     }
     this.state.studyLogs = this.state.studyLogs.filter((l) => l.id !== id);
     this.notify();
@@ -333,11 +344,11 @@ class Store {
     this.notify();
   }
 
-  public addMistake(mistake: Omit<MistakeItem, 'id' | 'dateAdded'>): void {
+  public addMistake(mistake: Omit<MistakeItem, 'id' | 'dateAdded'>, dateAdded?: string): void {
     const newMistake: MistakeItem = {
       ...mistake,
       id: 'm_' + this.generateId(),
-      dateAdded: getLocalDateString(),
+      dateAdded: dateAdded || getLocalDateString(),
     };
     this.state.mistakes.unshift(newMistake);
     this.notify();

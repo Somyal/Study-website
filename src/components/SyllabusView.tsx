@@ -223,7 +223,7 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast, selecte
           {['all', '11', '12'].map((val) => (
             <button
               key={val}
-              onClick={() => setClassFilter(val as any)}
+              onClick={() => setClassFilter(val as 'all' | '11' | '12')}
               className={`px-3 py-1 rounded-full font-semibold transition-all cursor-pointer ${
                 classFilter === val
                   ? 'bg-[var(--gold-muted)] text-[var(--gold)] border border-[var(--gold-border)]'
@@ -238,7 +238,7 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({ onShowToast, selecte
           {['all', 'High', 'Medium', 'Low'].map((val) => (
             <button
               key={val}
-              onClick={() => setWeightFilter(val as any)}
+              onClick={() => setWeightFilter(val as 'all' | Weightage)}
               className={`px-3 py-1 rounded-full font-semibold transition-all cursor-pointer ${
                 weightFilter === val
                   ? 'bg-[var(--gold-muted)] text-[var(--gold)] border border-[var(--gold-border)]'

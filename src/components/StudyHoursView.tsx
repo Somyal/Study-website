@@ -72,7 +72,7 @@ export const StudyHoursView: React.FC<StudyHoursViewProps> = ({ onShowToast }) =
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      dates.push(d.toISOString().split('T')[0]);
+      dates.push(getLocalDateString(d));
     }
 
     const totals = dates.map((dStr) => {

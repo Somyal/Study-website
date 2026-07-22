@@ -34,6 +34,16 @@ export const FocusPortalView: React.FC<FocusPortalViewProps> = ({ onShowToast })
     return unsubscribe;
   }, []);
 
+  // Timer cleanup on unmount to prevent memory leak
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, []);
+
   // Fullscreen change listener
   useEffect(() => {
     const handleFullscreenChange = () => {

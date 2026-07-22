@@ -7,6 +7,8 @@ import { motion } from 'framer-motion';
 
 interface DashboardViewProps {
   onShowToast: (msg: string, type?: string) => void;
+  onOpenQuickLog: () => void;
+  onSelectChapter?: (chId: string) => void;
 }
 
 const COUNTDOWN_ITEMS = [
@@ -31,7 +33,7 @@ function getCountdownColor(totalHours: number) {
   return 'var(--error)'; // < 30 days
 }
 
-export const DashboardView: React.FC<DashboardViewProps> = ({ onShowToast }) => {
+export const DashboardView: React.FC<DashboardViewProps> = ({ onShowToast, onOpenQuickLog, onSelectChapter }) => {
   const [state, setState] = useState(store.getState());
 
   useEffect(() => {
@@ -52,7 +54,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onShowToast }) => 
   const recentBadges = BADGE_DEFINITIONS.filter((b) => b.check(state)).slice(-3).reverse();
 
   const handleQuickLog = () => {
-    onShowToast('Quick-log overlay coming soon. Use Study Hours for now.', 'amber');
+    onOpenQuickLog();
   };
 
   return (
@@ -177,12 +179,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onShowToast }) => 
             <div className="space-y-2">
               {weakChapters.map((w) => {
                 const ch = state.chapters[w.chId];
-                const chapterData = store.getChapterData ? undefined : undefined;
                 return (
-                  <div key={w.chId} className="flex items-center justify-between text-xs bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl px-3 py-2">
+                  <button
+                    key={w.chId}
+                    onClick={() => {
+                      if (onSelectChapter) onSelectChapter(w.chId);
+                      onShowToast('Opening chapter in Syllabus Tracker...', 'cyan');
+                    }}
+                    className="flex w-full items-center justify-between text-xs bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl px-3 py-2 hover:border-[var(--bh)] transition-colors cursor-pointer text-left"
+                  >
                     <span className="font-semibold text-[var(--tp)]">{w.chId.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}</span>
                     <span className="text-[var(--ts)]">{w.reason}</span>
-                  </div>
+                  </button>
                 );
               })}
             </div>

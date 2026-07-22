@@ -19,6 +19,15 @@ interface CommandPaletteProps {
   onSelectChapter?: (chId: string) => void;
 }
 
+interface PaletteItem {
+  type: 'tab' | 'chapter';
+  id: string;
+  label: string;
+  subLabel?: string;
+  icon?: React.ReactNode;
+  action: () => void;
+}
+
 export const CommandPalette: React.FC<CommandPaletteProps> = ({
   isOpen,
   onClose,
@@ -26,26 +35,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   onSelectChapter,
 }) => {
   const [query, setQuery] = useState('');
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
   const debouncedQuery = useDebounce(query, 150);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        if (isOpen) onClose();
-        else {
-          setQuery('');
-        }
-      }
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
+  const resultsRef = useRef<HTMLDivElement | null>(null);
 
   const tabsList = [
     { id: 'syllabus', label: 'Go to Syllabus Tracker', icon: <BookOpen className="w-4 h-4 text-cyan-400" /> },
@@ -73,25 +65,96 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     [debouncedQuery]
   );
 
+  const items: PaletteItem[] = useMemo(() => {
+    const result: PaletteItem[] = [];
+    matchingTabs.forEach((t) => {
+      result.push({
+        type: 'tab',
+        id: t.id,
+        label: t.label,
+        icon: t.icon,
+        action: () => {
+          onSelectTab(t.id);
+          onClose();
+        },
+      });
+    });
+    matchingChapters.forEach((ch) => {
+      result.push({
+        type: 'chapter',
+        id: ch.id,
+        label: ch.name,
+        subLabel: `Class ${ch.cls} · ${ch.weight} Weightage`,
+        action: () => {
+          onSelectTab('syllabus');
+          if (onSelectChapter) onSelectChapter(ch.id);
+          onClose();
+        },
+      });
+    });
+    return result;
+  }, [matchingTabs, matchingChapters, onSelectTab, onSelectChapter, onClose]);
+
+  useEffect(() => {
+    setHighlightedIndex(0);
+  }, [debouncedQuery]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        if (isOpen) onClose();
+        else {
+          setQuery('');
+        }
+      }
+      if (e.key === 'Escape' && isOpen) {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!isOpen) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightedIndex((prev) => Math.min(prev + 1, Math.max(0, items.length - 1)));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightedIndex((prev) => Math.max(prev - 1, 0));
+    } else if (e.key === 'Enter' && items[highlightedIndex]) {
+      e.preventDefault();
+      items[highlightedIndex].action();
+    }
+  };
+
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-start justify-center pt-20 px-4 animate-fadeIn">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-start justify-center pt-20 px-4 animate-fadeIn" role="dialog" aria-modal="true" aria-label="Command Palette">
       <div
         className="bg-[var(--bg-c)] border border-[var(--bh)] w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={handleKeyDown}
       >
         {/* Search Header */}
         <div className="flex items-center gap-3 px-4 py-3.5 border-b border-[var(--b)]">
-          <Search className="w-5 h-5 text-cyan-400" />
+          <Search className="w-5 h-5 text-cyan-400" aria-hidden="true" />
           <input
             type="text"
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Type a command, chapter name, or topic (e.g. 'rotational', 'mock tests')..."
+            aria-label="Search commands and chapters"
             className="flex-1 bg-transparent border-none outline-none text-[var(--tp)] placeholder-[var(--tm)] text-sm font-medium"
           />
           <button
             onClick={onClose}
+            aria-label="Close command palette"
             className="text-[var(--tm)] hover:text-[var(--tp)] p-1 rounded-lg hover:bg-[var(--bg-c2)]"
           >
             <X className="w-4 h-4" />
@@ -99,71 +162,73 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         </div>
 
         {/* Results List */}
-        <div className="max-h-96 overflow-y-auto p-2 space-y-1">
+        <div ref={resultsRef} className="max-h-96 overflow-y-auto p-2 space-y-1" role="listbox" aria-label="Search results">
           {/* Navigation Links */}
           {matchingTabs.length > 0 && (
             <div className="px-3 py-1.5 text-[10px] font-bold tracking-wider text-[var(--tm)] uppercase">
               Navigation
             </div>
           )}
-          {matchingTabs.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => {
-                onSelectTab(t.id);
-                onClose();
-              }}
-              className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-[var(--bg-c2)] flex items-center justify-between transition-colors group"
-            >
-              <div className="flex items-center gap-3">
-                {t.icon}
-                <span className="text-xs font-semibold text-[var(--tp)] group-hover:text-cyan-400">
-                  {t.label}
-                </span>
-              </div>
-              <span className="text-[10px] text-[var(--tm)] font-mono">Jump ↵</span>
-            </button>
-          ))}
-
-          {/* Matching Chapters */}
-          {matchingChapters.length > 0 && (
-            <>
-              <div className="px-3 py-1.5 text-[10px] font-bold tracking-wider text-[var(--tm)] uppercase mt-2">
-                JEE Chapters
-              </div>
-              {matchingChapters.map((ch) => (
+          {items.map((item, idx) => {
+            const isTab = item.type === 'tab';
+            const isHighlighted = idx === highlightedIndex;
+            if (isTab) {
+              return (
                 <button
-                  key={ch.id}
-                  onClick={() => {
-                    onSelectTab('syllabus');
-                    if (onSelectChapter) onSelectChapter(ch.id);
-                    onClose();
-                  }}
-                  className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-[var(--bg-c2)] flex items-center justify-between transition-colors group"
+                  key={item.id}
+                  role="option"
+                  aria-selected={isHighlighted}
+                  onClick={() => item.action()}
+                  onMouseEnter={() => setHighlightedIndex(idx)}
+                  className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center justify-between transition-colors group ${
+                    isHighlighted ? 'bg-[var(--bg-c2)]' : 'hover:bg-[var(--bg-c2)]'
+                  }`}
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-xs font-bold text-[var(--ts)] uppercase">
-                      {ch.sub.slice(0, 3)}
+                    {item.icon}
+                    <span className={`text-xs font-semibold ${isHighlighted ? 'text-cyan-400' : 'text-[var(--tp)] group-hover:text-cyan-400'}`}>
+                      {item.label}
                     </span>
-                    <div>
-                      <div className="text-xs font-semibold text-[var(--tp)] group-hover:text-cyan-400">
-                        {ch.name}
-                      </div>
-                      <div className="text-[10px] text-[var(--tm)]">
-                        Class {ch.cls} • {ch.weight} Weightage {ch.subtype ? `• ${ch.subtype}` : ''}
-                      </div>
-                    </div>
                   </div>
-                  <span className="text-[10px] bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded font-mono font-semibold">
-                    View Chapter
-                  </span>
+                  <span className="text-[10px] text-[var(--tm)] font-mono">Jump ↵</span>
                 </button>
-              ))}
-            </>
-          )}
+              );
+            }
+            return (
+              <button
+                key={item.id}
+                role="option"
+                aria-selected={isHighlighted}
+                onClick={() => item.action()}
+                onMouseEnter={() => setHighlightedIndex(idx)}
+                className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center justify-between transition-colors group ${
+                  isHighlighted ? 'bg-[var(--bg-c2)]' : 'hover:bg-[var(--bg-c2)]'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-[var(--ts)] uppercase">
+                    {item.id.slice(0, 3)}
+                  </span>
+                  <div>
+                    <div className={`text-xs font-semibold ${isHighlighted ? 'text-cyan-400' : 'text-[var(--tp)] group-hover:text-cyan-400'}`}>
+                      {item.label}
+                    </div>
+                    {item.subLabel && (
+                      <div className="text-[10px] text-[var(--tm)]">
+                        {item.subLabel}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <span className="text-[10px] bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded font-mono font-semibold">
+                  View Chapter
+                </span>
+              </button>
+            );
+          })}
 
           {matchingTabs.length === 0 && matchingChapters.length === 0 && (
-            <div className="p-8 text-center text-xs text-[var(--tm)]">
+            <div className="p-8 text-center text-xs text-[var(--tm)]" role="option">
               No matching commands or chapters found for &ldquo;{query}&rdquo;.
             </div>
           )}

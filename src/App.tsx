@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { SyllabusView } from './components/SyllabusView';
 import { BacklogView } from './components/BacklogView';
@@ -15,6 +15,7 @@ import { ToastContainer, ToastMessage } from './components/ToastContainer';
 import { QuickLogOverlay } from './components/QuickLogOverlay';
 import { store } from './store';
 import { calcUserLevel } from './utils/calculations';
+import { BADGE_DEFINITIONS } from './data/badges';
 import {
   Search,
   Sun,
@@ -48,6 +49,21 @@ export function App() {
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
   const [isLight, setIsLight] = useState(document.documentElement.classList.contains('light'));
   const [appState, setAppState] = useState(store.getState());
+  const prevBadgeIdsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const currentIds = new Set<string>();
+    BADGE_DEFINITIONS.forEach((b) => {
+      if (b.check(appState)) currentIds.add(b.id);
+    });
+    const prev = prevBadgeIdsRef.current;
+    const newBadges = [...currentIds].filter((id) => !prev.has(id));
+    if (newBadges.length > 0) {
+      const names = newBadges.map((id) => BADGE_DEFINITIONS.find((b) => b.id === id)?.name || id).join(', ');
+      showToast(`Badge unlocked: ${names}`, 'gold');
+    }
+    prevBadgeIdsRef.current = currentIds;
+  }, [appState]);
 
   useEffect(() => {
     localStorage.setItem('jeeCommandCenter_activeTab', activeTab);
@@ -177,7 +193,7 @@ export function App() {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
             >
-              {activeTab === 'dashboard' && <DashboardView onShowToast={showToast} />}
+              {activeTab === 'dashboard' && <DashboardView onShowToast={showToast} onOpenQuickLog={() => setIsQuickLogOpen(true)} onSelectChapter={(chId) => { setActiveTab('syllabus'); setSelectedChapterId(chId); }} />}
               {activeTab === 'syllabus' && (
                 <SyllabusView onShowToast={showToast} selectedChapterId={selectedChapterId} />
               )}
