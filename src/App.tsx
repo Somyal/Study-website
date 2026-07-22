@@ -23,7 +23,7 @@ import {
   Flame,
   Sparkles,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion';
 
 const TAB_TITLES: Record<string, string> = {
   dashboard: 'Dashboard',

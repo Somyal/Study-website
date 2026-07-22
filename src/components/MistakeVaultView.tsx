@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion';
 import { store } from '../store';
 import { MistakeItem, ErrorCategory, SubjectId } from '../types';
 import { ALL_CHAPTERS } from '../data/chapters';

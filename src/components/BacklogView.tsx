@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion';
 import { ALL_CHAPTERS } from '../data/chapters';
 import { store } from '../store';
 import { StageKey } from '../types';
