@@ -26,12 +26,29 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
   <script>tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['Inter','sans-serif'],mono:['JetBrains Mono','monospace']}}}};</script>
+  <script>
+    (function(){
+      const t = localStorage.getItem('jeeCommandCenter_theme') || 'dark';
+      if(t === 'light'){
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+      }
+    })();
+  </script>
 <style>
 :root{
   --bg:#09090b;--bg-c:#0f0f12;--bg-c2:#141418;--bg-c3:#1a1a20;
   --b:rgba(255,255,255,.06);--bh:rgba(255,255,255,.12);
   --cyan:#06b6d4;--em:#10b981;--vi:#8b5cf6;--am:#f59e0b;--rd:#ef4444;
   --tp:#f4f4f5;--ts:#a1a1aa;--tm:#52525b;
+  --hdr-bg:rgba(9,9,11,.92);
+}
+html.light, body.light {
+  --bg:#f8fafc;--bg-c:#ffffff;--bg-c2:#f1f5f9;--bg-c3:#e2e8f0;
+  --b:rgba(0,0,0,.08);--bh:rgba(0,0,0,.16);
+  --cyan:#0284c7;--em:#059669;--vi:#7c3aed;--am:#d97706;--rd:#dc2626;
+  --tp:#0f172a;--ts:#334155;--tm:#64748b;
+  --hdr-bg:rgba(248,250,252,.92);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
@@ -54,7 +71,7 @@ body{background:var(--bg);color:var(--tp);font-family:'Inter',sans-serif;overflo
 @keyframes celPulse{0%,100%{box-shadow:0 0 10px rgba(16,185,129,.5)}50%{box-shadow:0 0 40px rgba(16,185,129,.9),0 0 80px rgba(16,185,129,.5)}}
 
 /* Header */
-#hdr{background:rgba(9,9,11,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--b);position:sticky;top:0;z-index:100}
+#hdr{background:var(--hdr-bg);backdrop-filter:blur(20px);border-bottom:1px solid var(--b);position:sticky;top:0;z-index:100}
 
 /* Countdown */
 .cd-d{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:1.1rem;background:var(--bg-c3);border:1px solid var(--b);border-radius:8px;padding:3px 7px;min-width:34px;text-align:center}
@@ -134,7 +151,7 @@ body{background:var(--bg);color:var(--tp);font-family:'Inter',sans-serif;overflo
 
 /* Tooltip */
 .tw{position:relative;display:inline-block}
-.tb{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#1e1e26;border:1px solid var(--bh);border-radius:8px;padding:6px 10px;font-size:.7rem;color:var(--ts);white-space:nowrap;z-index:200;pointer-events:none;opacity:0;transition:opacity .2s}
+.tb{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:var(--bg-c3);border:1px solid var(--bh);border-radius:8px;padding:6px 10px;font-size:.7rem;color:var(--tp);white-space:nowrap;z-index:200;pointer-events:none;opacity:0;transition:opacity .2s}
 .tw:hover .tb{opacity:1}
 
 /* Chips */
@@ -259,8 +276,9 @@ label.btn{cursor:pointer}
           <div id="cad" style="display:flex;gap:2px;align-items:center"></div>
         </div>
       </div>
-      <!-- Gamification Bar -->
+      <!-- Gamification Bar & Theme Toggle -->
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <button class="btn bg" onclick="toggleTheme()" id="theme-btn" style="font-size:.75rem;padding:5px 11px">☀️ Light Mode</button>
         <div style="display:flex;align-items:center;gap:5px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:10px;padding:5px 11px">
           <span class="flame" style="font-size:.95rem">🔥</span>
           <span id="stk" style="font-size:.83rem;font-weight:800;color:#fcd34d;font-family:'JetBrains Mono',monospace">0</span>
@@ -1382,7 +1400,13 @@ function renderGoalChart(){
   ]},options:chDef()});
 }
 
-function chDef(){return{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#a1a1aa',font:{size:10},usePointStyle:true,pointStyleWidth:9}}},scales:{x:{ticks:{color:'#52525b',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#52525b',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}}}};}
+function chDef(){
+  const isLight = document.documentElement.classList.contains('light');
+  const tickColor = isLight ? '#64748b' : '#52525b';
+  const gridColor = isLight ? 'rgba(0,0,0,.08)' : 'rgba(255,255,255,.04)';
+  const labelColor = isLight ? '#334155' : '#a1a1aa';
+  return{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:labelColor,font:{size:10},usePointStyle:true,pointStyleWidth:9}}},scales:{x:{ticks:{color:tickColor,font:{size:9}},grid:{color:gridColor}},y:{ticks:{color:tickColor,font:{size:9}},grid:{color:gridColor}}}};
+}
 
 // --- STUDY HOURS ---
 function logStudy(){
@@ -1595,8 +1619,40 @@ function enterFPFullscreen() {
   }
 }
 
+// --- THEME TOGGLE SYSTEM ---
+const THEME_KEY = 'jeeCommandCenter_theme';
+
+function applyTheme(theme) {
+  if (theme === 'light') {
+    document.documentElement.classList.remove('dark');
+    document.documentElement.classList.add('light');
+    document.body.classList.remove('dark');
+    document.body.classList.add('light');
+  } else {
+    document.documentElement.classList.remove('light');
+    document.documentElement.classList.add('dark');
+    document.body.classList.remove('light');
+    document.body.classList.add('dark');
+  }
+  const btn = document.getElementById('theme-btn');
+  if (btn) {
+    btn.innerHTML = theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode';
+  }
+}
+
+function toggleTheme() {
+  const current = localStorage.getItem(THEME_KEY) || 'dark';
+  const next = current === 'dark' ? 'light' : 'dark';
+  localStorage.setItem(THEME_KEY, next);
+  applyTheme(next);
+  renderCharts();
+  renderWch();
+  toast(next === 'light' ? '☀️ Light Mode activated' : '🌙 Dark Mode activated', 'cy');
+}
+
 // --- INIT ---
 function initApp(){
+  applyTheme(localStorage.getItem(THEME_KEY) || 'dark');
   loadS();loadSettings();updUI();renderCh();updStreak();chkBdg();renderBPV();
   updSAvg();renderTH();renderSL();updSGauge();
   const today=new Date().toISOString().split('T')[0];
