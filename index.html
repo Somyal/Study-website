@@ -180,33 +180,21 @@ body{background:var(--bg);color:var(--tp);font-family:'Inter',sans-serif;overflo
 /* Focus iframe */
 #fiframe{border:none;border-radius:12px;width:100%;height:500px;background:var(--bg-c)}
 
-/* Fullscreen: make the iframe fill the whole viewport with no dead space */
-:fullscreen #fiframe,
-:-webkit-full-screen #fiframe,
-:-moz-full-screen #fiframe,
-:-ms-fullscreen #fiframe{
-  height:calc(100vh - 50px)!important;
-  width:100%!important;
-  border-radius:0!important;
-}
-#fp-iframe-wrap:fullscreen,
-#fp-iframe-wrap:-webkit-full-screen,
-#fp-iframe-wrap:-moz-full-screen,
-#fp-iframe-wrap:-ms-fullscreen{
-  height:100vh!important;
-  width:100vw!important;
-  display:flex!important;
-  flex-direction:column!important;
-  background:var(--bg)!important;
-  border-radius:0!important;
-  padding:0!important;
-}
-/* The inner top bar inside fullscreen should stay at a fixed 50px */
-#fp-iframe-wrap:fullscreen > div:first-child,
-#fp-iframe-wrap:-webkit-full-screen > div:first-child{
-  height:50px;
-  border-radius:0;
-  flex-shrink:0;
+/* Fullscreen CSS Override Rules */
+#fiframe:fullscreen,
+#fiframe:-webkit-full-screen,
+#fiframe:-moz-full-screen,
+#fiframe:-ms-fullscreen,
+iframe:fullscreen,
+iframe:-webkit-full-screen,
+iframe:-moz-full-screen {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  border: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: #09090b !important;
 }
 
 /* Gauge */
@@ -1592,12 +1580,19 @@ function endFPSession(){
   spawnP({clientX:window.innerWidth/2,clientY:200});
 }
 
-function enterFPFullscreen(){
-  const wrap=document.getElementById('fp-iframe-wrap');
-  if(!wrap){toast('No iframe to fullscreen.','rd');return;}
-  const req=wrap.requestFullscreen||wrap.webkitRequestFullscreen||wrap.mozRequestFullScreen||wrap.msRequestFullscreen;
-  if(req)req.call(wrap).catch(()=>toast('Fullscreen denied by browser.','rd'));
-  else toast('Fullscreen not supported.','rd');
+function enterFPFullscreen() {
+  const iframe = document.getElementById('fiframe');
+  if (!iframe) return;
+  
+  if (iframe.requestFullscreen) {
+    iframe.requestFullscreen();
+  } else if (iframe.webkitRequestFullscreen) {
+    iframe.webkitRequestFullscreen();
+  } else if (iframe.msRequestFullscreen) {
+    iframe.msRequestFullscreen();
+  } else {
+    toast('Fullscreen not supported on this browser', 'rd');
+  }
 }
 
 // --- INIT ---
