@@ -670,7 +670,7 @@ label.btn{cursor:pointer}
     <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
       <div style="flex:1;min-width:200px">
         <label class="lbl">Study Platform URL</label>
-        <input class="inp" type="url" id="furl" placeholder="https://www.pw.live"/>
+        <input class="inp" type="url" id="furl" placeholder="e.g. https://www.pw.live/study-v2/batches or https://youtube.com/watch?v=..."/>
       </div>
       <button class="btn bv" onclick="launchFP()">🚀 Launch</button>
       <button class="btn bg" onclick="saveFURL()">💾 Save</button>
@@ -847,7 +847,7 @@ const ALL_CH = [...SYL.physics.chapters,...SYL.chemistry.chapters,...SYL.mathema
 const SK = 'jeeCommandCenter_v3';
 let S = {};
 
-function defS(){return{chapters:{},tests:[],studyLogs:[],badges:{},goals:{pc:80,ps:75,cc:80,cs:75,mc:80,ms:75},dates:{m1:'2027-01-20',m2:'2027-04-02',ad:'2027-05-23'},settings:{dt:8,tt:200},streak:{count:0,last:null},xp:0,focusUrl:'https://www.pw.live'};}
+function defS(){return{chapters:{},tests:[],studyLogs:[],badges:{},goals:{pc:80,ps:75,cc:80,cs:75,mc:80,ms:75},dates:{m1:'2027-01-20',m2:'2027-04-02',ad:'2027-05-23'},settings:{dt:8,tt:200},streak:{count:0,last:null},xp:0,focusUrl:'https://www.pw.live/study-v2/batches'};}
 // Future fallbacks used whenever a saved date is missing, unparseable, or already in the past.
 const FUTURE_DATES={m1:'2027-01-20',m2:'2027-04-02',ad:'2027-05-25'};
 function _sanitizeDates(){
@@ -1579,7 +1579,7 @@ function saveTT(){S.settings.tt=gN('tti')||200;saveS();}
 function loadSettings(){
   sV('dm1',S.dates.m1);sV('dm2',S.dates.m2);sV('dad',S.dates.ad);
   sV('dti',S.settings.dt||8);sV('tti',S.settings.tt||200);
-  sV('furl',S.focusUrl||'https://www.pw.live');
+  sV('furl',S.focusUrl||'https://www.pw.live/study-v2/batches');
 }
 
 function expData(){
@@ -1601,17 +1601,52 @@ function closeRM(){document.getElementById('rm').classList.remove('open');}
 function doReset(){S=defS();saveS();closeRM();initApp();toast('🗑️ All data reset.','rd');}
 
 // --- FOCUS PORTAL ---
-function saveFURL(){S.focusUrl=gV('furl')||'https://www.pw.live';saveS();toast('💾 URL saved!','cy');}
+function saveFURL(){S.focusUrl=gV('furl')||'https://www.pw.live/study-v2/batches';saveS();toast('💾 URL saved!','cy');}
+
+function transformFocusUrl(rawUrl) {
+  if (!rawUrl) return 'about:blank';
+  let url = rawUrl.trim();
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    url = 'https://' + url;
+  }
+  
+  // YouTube Auto-Embed Conversion
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes('youtube.com') && u.searchParams.get('v')) {
+      const videoId = u.searchParams.get('v');
+      return `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+    }
+    if (u.hostname.includes('youtu.be')) {
+      const videoId = u.pathname.replace('/', '');
+      if (videoId) {
+        return `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+      }
+    }
+    // Clean Physics Wallah query redirect if present
+    if (u.hostname.includes('pw.live') && u.searchParams.has('redirectUrl')) {
+      const cleanRedir = u.searchParams.get('redirectUrl');
+      if (cleanRedir && cleanRedir.startsWith('http')) return cleanRedir;
+    }
+  } catch(e) {}
+  
+  return url;
+}
 
 // Session stopwatch state
 let _fpStart=null, _fpInterval=null, _fpPaused=false, _fpAccumulatedTime=0, _fpBreakStart=null, _fpPendingHrs=0;
 
 function launchFP(){
-  const url=gV('furl')||S.focusUrl||'https://www.pw.live';
-  S.focusUrl=url;saveS();
-  const iframe=document.getElementById('fiframe');
-  if(iframe)iframe.src=url;
-  toast('🚀 Focus portal launched!','vi');
+  const rawUrl = gV('furl') || S.focusUrl || 'https://www.pw.live/study-v2/batches';
+  const embedUrl = transformFocusUrl(rawUrl);
+  S.focusUrl = rawUrl;
+  saveS();
+  
+  const iframe = document.getElementById('fiframe');
+  if(iframe) iframe.src = embedUrl;
+  
+  const isYt = embedUrl.includes('youtube.com/embed/');
+  toast(isYt ? '▶️ YouTube Video Embedded!' : '🚀 Focus portal launched!', 'vi');
   
   // Reset session timer state
   _fpStart=Date.now();
