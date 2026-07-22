@@ -248,6 +248,49 @@ label.btn{cursor:pointer}
   </div>
 </div>
 
+<!-- Focus Session Completion Modal -->
+<div id="fp-modal" class="moverlay">
+  <div class="mbox" style="max-width:460px">
+    <div style="font-size:1.3rem;font-weight:800;margin-bottom:6px;color:var(--cyan)">🎯 Session Completed!</div>
+    <p style="font-size:.82rem;color:var(--ts);margin-bottom:16px">Log your session details below to update your study tracker and collect XP.</p>
+    
+    <div style="display:grid;gap:12px;margin-bottom:18px">
+      <!-- Session Duration (Read Only) -->
+      <div style="background:var(--bg-c2);border:1px solid var(--b);border-radius:10px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:.78rem;font-weight:600;color:var(--ts)">Active Study Duration</span>
+        <span id="fp-modal-duration" style="font-size:1.15rem;font-weight:800;color:var(--em);font-family:'JetBrains Mono',monospace">⏱️ 0.0 hrs</span>
+      </div>
+
+      <!-- Questions Solved -->
+      <div>
+        <label class="lbl">Questions Solved</label>
+        <input class="inp" type="number" id="fp-qs" placeholder="0" min="0" value="0"/>
+      </div>
+
+      <!-- Lecture vs Practice Ratio -->
+      <div>
+        <label class="lbl">Session Focus</label>
+        <select class="inp" id="fp-ratio">
+          <option value="practice">Practice / Problem Solving</option>
+          <option value="lecture">Lecture / Theory</option>
+          <option value="balanced">Balanced (50% Lecture, 50% Practice)</option>
+        </select>
+      </div>
+
+      <!-- Custom Notes -->
+      <div>
+        <label class="lbl">Session Notes / Topics Covered</label>
+        <textarea class="inp" id="fp-notes" placeholder="e.g. Rotational Motion - PW Lecture 3 + solved 15 DPP questions" rows="3" style="resize:vertical"></textarea>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn bg" onclick="closeFPModal()">Cancel</button>
+      <button class="btn be" onclick="saveFPSessionLog()">💾 Save Log (+100 XP)</button>
+    </div>
+  </div>
+</div>
+
 <!-- =================== HEADER =================== -->
 <header id="hdr">
   <div style="max-width:1600px;margin:0 auto;padding:0 18px">
@@ -573,6 +616,7 @@ label.btn{cursor:pointer}
         <div><label class="lbl">Date</label><input class="inp" type="date" id="sdt"/></div>
         <div><label class="lbl">Lecture Time (hrs)</label><input class="inp" type="number" id="slc" placeholder="2.5" min="0" max="24" step="0.5"/></div>
         <div><label class="lbl">Problem Solving / Practice (hrs)</label><input class="inp" type="number" id="spr" placeholder="3.0" min="0" max="24" step="0.5"/></div>
+        <div><label class="lbl">Questions Solved</label><input class="inp" type="number" id="sqs" placeholder="0" min="0"/></div>
         <div><label class="lbl">Notes / Focus Area</label><textarea class="inp" id="sno" placeholder="What did you study today?" rows="2" style="resize:vertical"></textarea></div>
         <button class="btn be" onclick="logStudy()" style="width:100%;justify-content:center">Log Study Session (+100 XP)</button>
       </div>
@@ -594,7 +638,7 @@ label.btn{cursor:pointer}
       </svg>
       <div style="text-align:center;margin-top:10px">
         <div style="font-size:.7rem;color:var(--tm)">Daily Target: <span id="dtd" style="color:var(--cyan);font-weight:700">8h</span></div>
-        <div style="font-size:.7rem;color:var(--tm);margin-top:1px">Today Logged: <span id="tld" style="color:var(--em);font-weight:700">0h</span></div>
+        <div style="font-size:.7rem;color:var(--tm);margin-top:1px">Today Logged: <span id="tld" style="color:var(--em);font-weight:700">0h | 0 Qs</span></div>
       </div>
     </div>
   </div>
@@ -608,7 +652,7 @@ label.btn{cursor:pointer}
     <div style="font-size:.85rem;font-weight:800;margin-bottom:14px">🗒️ Study Log</div>
     <div style="overflow-x:auto">
       <table class="dt">
-        <thead><tr><th>Date</th><th>Lectures (h)</th><th>Practice (h)</th><th>Total (h)</th><th>Notes</th><th></th></tr></thead>
+        <thead><tr><th>Date</th><th>Lectures (h)</th><th>Practice (h)</th><th>Total (h)</th><th>Questions</th><th>Notes</th><th></th></tr></thead>
         <tbody id="slb"></tbody>
       </table>
     </div>
@@ -642,7 +686,10 @@ label.btn{cursor:pointer}
           <!-- Live indicator dot -->
           <span id="fp-dot" style="width:10px;height:10px;border-radius:50%;background:var(--em);display:inline-block;animation:liveDot 1.2s ease-in-out infinite"></span>
           <div>
-            <div id="fp-status-label" style="font-size:.65rem;font-weight:700;color:var(--tm);letter-spacing:.07em">SESSION IN PROGRESS</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span id="fp-status-label" style="font-size:.65rem;font-weight:700;color:var(--tm);letter-spacing:.07em">SESSION IN PROGRESS</span>
+              <span id="fp-break-badge" style="display:none;font-size:.65rem;font-weight:700;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:#fcd34d;border-radius:99px;padding:1px 7px">☕ Break: 00:00</span>
+            </div>
             <div id="fp-timer" style="font-size:1.6rem;font-weight:900;color:var(--cyan);font-family:'JetBrains Mono',monospace;letter-spacing:.04em">00:00:00</div>
           </div>
         </div>
@@ -1413,16 +1460,16 @@ function chDef(){
 
 // --- STUDY HOURS ---
 function logStudy(){
-  const date=gV('sdt'),lc=parseFloat(gV('slc'))||0,pr=parseFloat(gV('spr'))||0,no=gV('sno');
-  if(!date||lc+pr<=0){toast('⚠️ Enter date and hours','rd');return;}
-  const tot=lc+pr;
-  const log={id:Date.now(),date,lc,pr,tot,no};
+  const date=gV('sdt'),lc=parseFloat(gV('slc'))||0,pr=parseFloat(gV('spr'))||0,qs=parseInt(gV('sqs'))||0,no=gV('sno');
+  if(!date||(lc+pr<=0 && qs<=0)){toast('⚠️ Enter date and study time/questions','rd');return;}
+  const tot=Math.round((lc+pr)*10)/10;
+  const log={id:Date.now(),date,lc,pr,tot,qs,no};
   const ei=S.studyLogs.findIndex(l=>l.date===date);
   if(ei>=0){S.studyLogs[ei]=log;toast('📝 Study log updated!','cy');}
   else{S.studyLogs.push(log);addXP(100,null);toast('⏱️ Study logged! +100 XP','em');updStreak();}
   S.studyLogs.sort((a,b)=>new Date(a.date)-new Date(b.date));
   saveS();chkBdg();renderSL();renderWch();updSGauge();
-  ['sdt','slc','spr','sno'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ['sdt','slc','spr','sqs','sno'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
 }
 
 function delSL(id){
@@ -1433,23 +1480,25 @@ function updSGauge(){
   const today=new Date().toISOString().split('T')[0];
   const tl=S.studyLogs.find(l=>l.date===today);
   const th=tl?tl.tot:0;
+  const tqs=tl?(tl.qs||0):0;
   const target=S.settings.dt||8;
   const pct=Math.min(th/target,1);
   const circ=408.41;
   const gc=document.getElementById('sgc');
   if(gc)gc.style.strokeDashoffset=circ-(circ*pct);
   setI('ghl',th+'h');setI('gtl','of '+target+'h target');
-  setI('tld',th+'h');setI('dtd',target+'h');
+  setI('tld',th+'h | '+tqs+' Qs');setI('dtd',target+'h');
 }
 
 function renderSL(){
   const tb=document.getElementById('slb');if(!tb)return;
-  if(!S.studyLogs.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--tm);padding:26px">No study sessions logged yet.</td></tr>';return;}
+  if(!S.studyLogs.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--tm);padding:26px">No study sessions logged yet.</td></tr>';return;}
   tb.innerHTML=[...S.studyLogs].reverse().map(l=>`<tr>
     <td style="font-weight:600">${new Date(l.date+'T00:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'2-digit',month:'short'})}</td>
-    <td style="color:var(--cyan);font-weight:700;font-family:'JetBrains Mono',monospace">${l.lc}h</td>
-    <td style="color:var(--vi);font-weight:700;font-family:'JetBrains Mono',monospace">${l.pr}h</td>
-    <td style="color:var(--em);font-weight:800;font-family:'JetBrains Mono',monospace">${l.tot}h</td>
+    <td style="color:var(--cyan);font-weight:700;font-family:'JetBrains Mono',monospace">${l.lc||0}h</td>
+    <td style="color:var(--vi);font-weight:700;font-family:'JetBrains Mono',monospace">${l.pr||0}h</td>
+    <td style="color:var(--em);font-weight:800;font-family:'JetBrains Mono',monospace">${l.tot||0}h</td>
+    <td style="color:var(--am);font-weight:700;font-family:'JetBrains Mono',monospace">${l.qs||0}</td>
     <td style="color:var(--tm);font-size:.73rem">${l.no||'—'}</td>
     <td><button onclick="delSL(${l.id})" style="background:none;border:none;color:var(--tm);cursor:pointer;font-size:.85rem" title="Delete">🗑</button></td>
   </tr>`).join('');
@@ -1555,7 +1604,7 @@ function doReset(){S=defS();saveS();closeRM();initApp();toast('🗑️ All data 
 function saveFURL(){S.focusUrl=gV('furl')||'https://www.pw.live';saveS();toast('💾 URL saved!','cy');}
 
 // Session stopwatch state
-let _fpStart=null, _fpInterval=null, _fpPaused=false, _fpAccumulatedTime=0;
+let _fpStart=null, _fpInterval=null, _fpPaused=false, _fpAccumulatedTime=0, _fpBreakStart=null, _fpPendingHrs=0;
 
 function launchFP(){
   const url=gV('furl')||S.focusUrl||'https://www.pw.live';
@@ -1568,6 +1617,7 @@ function launchFP(){
   _fpStart=Date.now();
   _fpAccumulatedTime=0;
   _fpPaused=false;
+  _fpBreakStart=null;
   
   const pauseBtn=document.getElementById('fp-pause-btn');
   if(pauseBtn)pauseBtn.innerHTML='⏸️ Pause';
@@ -1575,6 +1625,8 @@ function launchFP(){
   if(dot)dot.style.background='var(--em)';
   const label=document.getElementById('fp-status-label');
   if(label)label.textContent='SESSION IN PROGRESS';
+  const breakBadge=document.getElementById('fp-break-badge');
+  if(breakBadge)breakBadge.style.display='none';
 
   if(_fpInterval)clearInterval(_fpInterval);
   const timerEl=document.getElementById('fp-timer');
@@ -1591,6 +1643,20 @@ function launchFP(){
     const ss=Math.floor((elapsed%60000)/1000);
     if(timerEl)timerEl.textContent=
       String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0');
+
+    // Handle break badge update
+    if(_fpPaused && _fpBreakStart){
+      const bElapsed = Date.now() - _fpBreakStart;
+      const bmm = Math.floor((bElapsed%3600000)/60000);
+      const bss = Math.floor((bElapsed%60000)/1000);
+      const bStr = String(bmm).padStart(2,'0')+':'+String(bss).padStart(2,'0');
+      if(breakBadge){
+        breakBadge.style.display='inline-block';
+        breakBadge.textContent = '☕ Break: ' + bStr;
+      }
+    } else {
+      if(breakBadge)breakBadge.style.display='none';
+    }
   },1000);
 }
 
@@ -1609,14 +1675,16 @@ function toggleFPPause(){
       _fpAccumulatedTime += (Date.now() - _fpStart);
       _fpStart=null;
     }
+    _fpBreakStart=Date.now();
     if(pauseBtn)pauseBtn.innerHTML='▶️ Resume';
     if(dot)dot.style.background='var(--am)';
     if(label)label.textContent='SESSION PAUSED';
-    toast('⏸️ Session paused','am');
+    toast('⏸️ Session paused — break timer active','am');
   } else {
     // Resume timer
     _fpPaused=false;
     _fpStart=Date.now();
+    _fpBreakStart=null;
     if(pauseBtn)pauseBtn.innerHTML='⏸️ Pause';
     if(dot)dot.style.background='var(--em)';
     if(label)label.textContent='SESSION IN PROGRESS';
@@ -1625,39 +1693,70 @@ function toggleFPPause(){
 }
 
 function endFPSession(){
-  if(!_fpStart && !_fpPaused && _fpAccumulatedTime===0){
-    toast('No active session.','rd');return;
-  }
-  clearInterval(_fpInterval);_fpInterval=null;
-  
   let totalElapsed = _fpAccumulatedTime;
   if(!_fpPaused && _fpStart){
     totalElapsed += (Date.now() - _fpStart);
   }
-  _fpStart=null; _fpAccumulatedTime=0; _fpPaused=false;
+  if(totalElapsed < 5000){
+    toast('⚠️ Study duration too short to log.','rd');return;
+  }
+  
+  // Calculate net active hours (rounded to 1 decimal place)
+  _fpPendingHrs = Math.max(0.1, Math.round((totalElapsed/3600000)*10)/10);
+  
+  // Show completion modal without switching tabs
+  const modalDur = document.getElementById('fp-modal-duration');
+  if(modalDur) modalDur.textContent = '⏱️ ' + _fpPendingHrs + ' hrs active study time';
+  sV('fp-qs', '0');
+  sV('fp-notes', '');
+  sV('fp-ratio', 'practice');
+  
+  document.getElementById('fp-modal').classList.add('open');
+}
 
-  // Calculate hours (rounded to 1 decimal)
-  const hrs=Math.round((totalElapsed/3600000)*10)/10;
-  const today=new Date().toISOString().split('T')[0];
+function closeFPModal(){
+  document.getElementById('fp-modal').classList.remove('open');
+}
+
+function saveFPSessionLog(){
+  const hrs = _fpPendingHrs || 0.1;
+  const ratio = gV('fp-ratio');
+  const qs = parseInt(gV('fp-qs')) || 0;
+  const notes = gV('fp-notes') || ('Focus Portal session — ' + hrs + 'h');
   
-  // Hide the timer bar and reset display
-  const bar=document.getElementById('fp-session-bar');
-  if(bar)bar.style.display='none';
-  const timerEl=document.getElementById('fp-timer');
-  if(timerEl)timerEl.textContent='00:00:00';
+  let lc = 0, pr = 0;
+  if(ratio === 'lecture') { lc = hrs; pr = 0; }
+  else if(ratio === 'practice') { lc = 0; pr = hrs; }
+  else { lc = Math.round((hrs / 2) * 10) / 10; pr = Math.round((hrs - lc) * 10) / 10; }
   
-  // Switch to Study Hours tab and pre-fill the form
-  sw('study');
-  sV('sdt',today);
-  const existingPr=parseFloat(document.getElementById('spr')?.value||'0')||0;
-  sV('spr', Math.round((existingPr+hrs)*10)/10);
-  sV('sno','Focus Portal session — '+hrs+'h');
+  const today = new Date().toISOString().split('T')[0];
+  const ei = S.studyLogs.findIndex(l => l.date === today);
   
-  // Fire the log immediately
-  logStudy();
-  addXP(100,null);
-  toast('🛑 Session ended: '+hrs+'h logged & +100 XP!','am');
-  spawnP({clientX:window.innerWidth/2,clientY:200});
+  if(ei >= 0) {
+    const existing = S.studyLogs[ei];
+    existing.lc = Math.round(((existing.lc || 0) + lc) * 10) / 10;
+    existing.pr = Math.round(((existing.pr || 0) + pr) * 10) / 10;
+    existing.tot = Math.round(((existing.tot || 0) + hrs) * 10) / 10;
+    existing.qs = (existing.qs || 0) + qs;
+    if(notes) existing.no = existing.no ? (existing.no + ' | ' + notes) : notes;
+  } else {
+    S.studyLogs.push({ id: Date.now(), date: today, lc, pr, tot: hrs, qs, no: notes });
+  }
+  
+  saveS(); chkBdg(); renderSL(); renderWch(); updSGauge();
+  addXP(100, null);
+  toast('🎉 Session logged: ' + hrs + 'h & +100 XP!', 'em');
+  spawnP({ clientX: window.innerWidth / 2, clientY: 200 });
+  
+  closeFPModal();
+  
+  // Reset Focus Portal timer bar
+  if(_fpInterval) clearInterval(_fpInterval);
+  _fpInterval = null; _fpStart = null; _fpAccumulatedTime = 0; _fpPaused = false; _fpBreakStart = null;
+  const bar = document.getElementById('fp-session-bar');
+  if(bar) bar.style.display = 'none';
+  const timerEl = document.getElementById('fp-timer');
+  if(timerEl) timerEl.textContent = '00:00:00';
 }
 
 function enterFPFullscreen() {
