@@ -163,6 +163,7 @@ body{background:var(--bg);color:var(--tp);font-family:'Inter',sans-serif;overflo
 
 /* Flame */
 @keyframes flicker{0%,100%{transform:scaleY(1) rotate(-2deg)}50%{transform:scaleY(1.05) rotate(2deg)}}
+@keyframes liveDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.75)}}
 .flame{display:inline-block;animation:flicker .6s ease-in-out infinite}
 
 /* Data table */
@@ -584,6 +585,8 @@ label.btn{cursor:pointer}
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
     <h2 style="font-size:1.35rem;font-weight:800">🎮 Focus Portal</h2>
   </div>
+
+  <!-- URL Bar + controls -->
   <div class="card" style="padding:22px;margin-bottom:18px">
     <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
       <div style="flex:1;min-width:200px">
@@ -592,9 +595,29 @@ label.btn{cursor:pointer}
       </div>
       <button class="btn bv" onclick="launchFP()">🚀 Launch</button>
       <button class="btn bg" onclick="saveFURL()">💾 Save</button>
+      <button class="btn bg" onclick="enterFPFullscreen()" title="Expand iframe to fullscreen">🖥️ Fullscreen</button>
     </div>
   </div>
-  <div class="card" style="padding:4px;background:var(--bg-c2)">
+
+  <!-- Session Timer Bar (hidden until Launch is clicked) -->
+  <div id="fp-session-bar" style="display:none;margin-bottom:14px">
+    <div class="card" style="padding:14px 20px;background:linear-gradient(135deg,rgba(139,92,246,.12),rgba(6,182,212,.08));border-color:rgba(139,92,246,.35)">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div style="display:flex;align-items:center;gap:14px">
+          <!-- Pulsing live dot -->
+          <span style="width:10px;height:10px;border-radius:50%;background:var(--em);display:inline-block;animation:liveDot 1.2s ease-in-out infinite"></span>
+          <div>
+            <div style="font-size:.65rem;font-weight:700;color:var(--tm);letter-spacing:.07em">SESSION IN PROGRESS</div>
+            <div id="fp-timer" style="font-size:1.6rem;font-weight:900;color:var(--cyan);font-family:'JetBrains Mono',monospace;letter-spacing:.04em">00:00:00</div>
+          </div>
+        </div>
+        <button class="btn bdr" onclick="endFPSession()">🛑 End Session &amp; Save Log</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Iframe container -->
+  <div id="fp-iframe-wrap" class="card" style="padding:4px;background:var(--bg-c2)">
     <div style="background:var(--bg-c3);border-radius:11px;padding:14px 18px;margin-bottom:4px;display:flex;align-items:center;justify-content:space-between">
       <div style="font-size:.75rem;font-weight:600;color:var(--tm)">🎯 DISTRACTION-FREE STUDY MODE</div>
       <span style="font-size:.68rem;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);border-radius:99px;padding:2px 8px;color:#34d399">ACTIVE</span>
@@ -739,7 +762,7 @@ const ALL_CH = [...SYL.physics.chapters,...SYL.chemistry.chapters,...SYL.mathema
 const SK = 'jeeCommandCenter_v3';
 let S = {};
 
-function defS(){return{chapters:{},tests:[],studyLogs:[],badges:{},goals:{pc:80,ps:75,cc:80,cs:75,mc:80,ms:75},dates:{m1:'2026-01-22',m2:'2026-04-01',ad:'2026-05-25'},settings:{dt:8,tt:200},streak:{count:0,last:null},xp:0,focusUrl:'https://www.pw.live'};}
+function defS(){return{chapters:{},tests:[],studyLogs:[],badges:{},goals:{pc:80,ps:75,cc:80,cs:75,mc:80,ms:75},dates:{m1:'2027-01-20',m2:'2027-04-02',ad:'2027-05-23'},settings:{dt:8,tt:200},streak:{count:0,last:null},xp:0,focusUrl:'https://www.pw.live'};}
 function loadS(){try{const r=localStorage.getItem(SK);if(r){const sv=JSON.parse(r);S=Object.assign(defS(),sv);['chapters','tests','studyLogs','badges','goals','dates','settings','streak'].forEach(k=>{if(!S[k])S[k]=defS()[k];});if(S.xp===undefined)S.xp=0;}}catch(e){S=defS();}}
 function saveS(){try{localStorage.setItem(SK,JSON.stringify(S));}catch(e){}}
 function gCh(id){if(!S.chapters[id])S.chapters[id]={stages:{theory:false,dpp:false,pyq:false,revision:false},stars:0,backlog:false,revisionDates:[]};return S.chapters[id];}
@@ -778,6 +801,9 @@ function sw(t){
 // --- SUBJECT SELECTION ---
 function selS(s){
   aS=s;
+  // Auto-clear the search bar so previous terms don't hide new subject's chapters
+  const chsEl=document.getElementById('chs');
+  if(chsEl)chsEl.value='';
   ['physics','chemistry','mathematics'].forEach(x=>{
     const el=document.getElementById(x==='physics'?'sp':x==='chemistry'?'sc2':'sm');
     if(el)el.classList.remove('ap','ac','am2');
@@ -792,15 +818,116 @@ function selS(s){
 }
 
 // --- CHAPTER RENDERING ---
+
+// Alternative keyword aliases: maps common shorthand / topic terms
+// to substrings present in the canonical chapter names above.
+const CH_KEYWORDS={
+  // Physics
+  'units':'physical world','dimensions':'physical world','measurement':'physical world',
+  'motion':'kinematics','displacement':'kinematics','velocity':'kinematics','acceleration':'kinematics',
+  'newton':'laws of motion','friction':'laws of motion','force':'laws of motion',
+  'energy':'work, energy','power':'work, energy','ke':'work, energy','pe':'work, energy',
+  'rotation':'rotational','torque':'rotational','moment of inertia':'rotational','angular':'rotational',
+  'gravity':'gravitation','satellite':'gravitation','kepler':'gravitation','orbit':'gravitation',
+  'fluid':'properties of solids','viscosity':'properties of solids','surface tension':'properties of solids',
+  'heat':'thermodynamics','entropy':'thermodynamics','carnot':'thermodynamics',
+  'ideal gas':'kinetic theory','boltzmann':'kinetic theory','rms':'kinetic theory',
+  'shm':'oscillations','pendulum':'oscillations','spring':'oscillations',
+  'sound':'waves','doppler':'waves','interference':'waves',
+  'charge':'electrostatics','coulomb':'electrostatics','capacitor':'electrostatics','electric field':'electrostatics',
+  'resistance':'current electricity','ohm':'current electricity','circuit':'current electricity','kirchhoff':'current electricity',
+  'ampere':'magnetic effects','biot':'magnetic effects','lorentz':'magnetic effects',
+  'faraday':'electromagnetic induction','lenz':'electromagnetic induction','emf':'electromagnetic induction',
+  'ac':'alternating current','transformer':'alternating current','lcr':'alternating current',
+  'em wave':'electromagnetic waves','maxwell':'electromagnetic waves',
+  'mirror':'ray optics','lens':'ray optics','refraction':'ray optics','prism':'ray optics',
+  'huygens':'wave optics','diffraction':'wave optics','polarisation':'wave optics','young':'wave optics',
+  'photoelectric':'dual nature','photon':'dual nature','de broglie':'dual nature',
+  'bohr':'atoms','radioactive':'nuclei','nuclear':'atoms','half life':'atoms',
+  'diode':'semiconductor','transistor':'semiconductor','logic gate':'semiconductor',
+  // Chemistry - Physical
+  'mole':'basic concepts','stoichiometry':'basic concepts','atomic mass':'basic concepts',
+  'gas law':'states of matter','van der waals':'states of matter',
+  'quantum':'atomic structure','orbital':'atomic structure','schrodinger':'atomic structure','heisenberg':'atomic structure',
+  'vsepr':'chemical bonding','hybridisation':'chemical bonding','hybridization':'chemical bonding','ionic':'chemical bonding',
+  'enthalpy':'thermodynamics','hess':'thermodynamics','gibbs':'thermodynamics',
+  'buffer':'equilibrium','le chatelier':'equilibrium','kp':'equilibrium','kc':'equilibrium','ph':'equilibrium','acid base':'equilibrium',
+  'oxidation':'redox','reduction':'redox','balancing':'redox',
+  'molarity':'solutions','colligative':'solutions','osmosis':'solutions','raoult':'solutions',
+  'cell':'electrochemistry','nernst':'electrochemistry','galvanic':'electrochemistry','electrolysis':'electrochemistry',
+  'rate':'chemical kinetics','order':'chemical kinetics','arrhenius':'chemical kinetics',
+  'colloid':'surface chemistry','adsorption':'surface chemistry','catalyst':'surface chemistry',
+  'crystal':'solid state','lattice':'solid state','unit cell':'solid state','defect':'solid state',
+  // Chemistry - Organic
+  'iupac':'basic principles','isomerism':'basic principles','reaction mechanism':'basic principles','inductive':'basic principles',
+  'alkane':'hydrocarbons','alkene':'hydrocarbons','alkyne':'hydrocarbons','benzene':'hydrocarbons','aromatic':'hydrocarbons',
+  'halide':'haloalkanes','grignard':'haloalkanes','sn1':'haloalkanes','sn2':'haloalkanes',
+  'alcohol':'alcohols, phenols','phenol':'alcohols, phenols','ether':'alcohols, phenols',
+  'aldehyde':'aldehydes','ketone':'aldehydes','carboxylic':'aldehydes','ester':'aldehydes',
+  'amine':'amines','diazonium':'amines',
+  'carbohydrate':'biomolecules','glucose':'biomolecules','protein':'biomolecules','dna':'biomolecules',
+  'polymer':'polymers','addition polymer':'polymers','condensation':'polymers',
+  // Chemistry - Inorganic
+  'periodicity':'classification of elements','period':'classification of elements','group':'classification of elements',
+  'alkali':'s-block','sodium':'s-block','potassium':'s-block','calcium':'s-block','magnesium':'s-block',
+  'boron':'p-block','carbon':'p-block','silicon':'p-block','aluminium':'p-block',
+  'nitrogen':'p-block','oxygen':'p-block','sulphur':'p-block','sulfur':'p-block','halogen':'p-block','noble gas':'p-block',
+  'transition':'d & f block','lanthanide':'d & f block','actinide':'d & f block','chromium':'d & f block','iron':'d & f block',
+  'ligand':'coordination','cfse':'coordination','werner':'coordination','edta':'coordination',
+  'metallurgy':'general principles','ore':'general principles','slag':'general principles',
+  // Mathematics
+  'set':'sets, relations','relation':'sets, relations','function':'sets, relations',
+  'complex':'complex numbers','argand':'complex numbers','euler':'complex numbers',
+  'quadratic':'quadratic equations','discriminant':'quadratic equations','roots':'quadratic equations',
+  'ap':'sequences','gp':'sequences','hp':'sequences','arithmetic':'sequences','geometric':'sequences','harmonic':'sequences',
+  'line':'straight lines','slope':'straight lines','distance':'straight lines','pair of lines':'straight lines',
+  'circle':'circles','chord':'circles','tangent':'circles',
+  'parabola':'conic','ellipse':'conic','hyperbola':'conic','focus':'conic','directrix':'conic',
+  'combination':'permutations','factorial':'permutations','nPr':'permutations','nCr':'permutations',
+  'binomial':'binomial theorem','pascal':'binomial theorem','expansion':'binomial theorem',
+  'pmi':'mathematical induction','induction':'mathematical induction',
+  'trig':'trigonometric functions','sine':'trigonometric functions','cosine':'trigonometric functions','tan':'trigonometric functions',
+  'inverse trig':'inverse trigonometric','arcsin':'inverse trigonometric','arctan':'inverse trigonometric',
+  'limit':'limits & derivatives','derivative':'limits & derivatives','differentiation':'limits & derivatives',
+  'mean':'statistics','variance':'statistics','standard deviation':'statistics','probability 11':'statistics','bayes':'statistics',
+  '3d':'3d geometry','plane':'3d geometry','skew':'3d geometry',
+  'matrix':'matrices','determinant':'matrices','cramer':'matrices','adjoint':'matrices',
+  'continuous':'continuity','differentiable':'continuity','rolle':'continuity','mvt':'continuity',
+  'maxima':'application of derivatives','minima':'application of derivatives','tangent line':'application of derivatives',
+  'integration':'integrals','integral':'integrals','antiderivative':'integrals','substitution':'integrals','parts':'integrals',
+  'definite':'integrals (definite)','riemann':'integrals (definite)','newton leibniz':'integrals (definite)',
+  'area':'application of integrals','area between curves':'application of integrals',
+  'ode':'differential equations','order differential':'differential equations','degree differential':'differential equations',
+  'vector':'vector algebra','dot product':'vector algebra','cross product':'vector algebra','scalar triple':'vector algebra',
+  'linear programming':'linear programming','lpp':'linear programming','feasible':'linear programming',
+  'probability 12':'probability (12)','conditional':'probability (12)','bayes theorem':'probability (12)',
+};
+
+function chMatches(ch, search){
+  // Empty search — show everything
+  if(!search) return true;
+  const nameLower = ch.name.toLowerCase();
+  // Direct substring match against chapter name
+  if(nameLower.includes(search)) return true;
+  // Alias lookup: check if any keyword whose value contains 'search'
+  // OR whose key matches 'search' maps to a substring present in the chapter name
+  for(const [kw, target] of Object.entries(CH_KEYWORDS)){
+    if(kw.includes(search) || search.includes(kw)){
+      if(nameLower.includes(target)) return true;
+    }
+  }
+  return false;
+}
+
 function gFC(){
-  const search=(document.getElementById('chs')?.value||'').toLowerCase();
+  const search = (document.getElementById('chs')?.value || '').trim().toLowerCase();
   return SYL[aS].chapters.filter(ch=>{
     const cd=gCh(ch.id);
     if(aF.class!=='all'&&String(ch.cls)!==aF.class)return false;
     if(aF.weight!=='all'&&ch.weight!==aF.weight)return false;
     if(aF.backlog==='true'&&!cd.backlog)return false;
     if(aS==='chemistry'&&aF.chemtype!=='all'&&ch.subtype!==aF.chemtype)return false;
-    if(search&&!ch.name.toLowerCase().includes(search))return false;
+    if(!chMatches(ch, search))return false;
     return true;
   });
 }
@@ -816,7 +943,14 @@ function renderCh(){
     groups[key].push(ch);
   });
   const keys=Object.keys(groups).sort();
-  if(!keys.length){con.innerHTML='<div style="text-align:center;padding:50px;color:var(--tm);font-size:.9rem">No chapters match filters.</div>';return;}
+  if(!keys.length){
+    const q=(document.getElementById('chs')?.value||'').trim();
+    const msg=q
+      ? `No chapters found matching <span style="color:var(--cyan);font-weight:700">&ldquo;${q}&rdquo;</span>.`
+      : 'No chapters match the selected filters.';
+    con.innerHTML=`<div style="text-align:center;padding:50px;color:var(--tm);font-size:.88rem;line-height:1.7">${msg}</div>`;
+    return;
+  }
   con.innerHTML=keys.map(key=>{
     const chs=groups[key];
     const done=chs.filter(ch=>{const cd=gCh(ch.id);return cd.stages.theory&&cd.stages.dpp&&cd.stages.pyq&&cd.stages.revision;}).length;
@@ -1036,11 +1170,26 @@ function updCD(){
 }
 function mkCD(eid,ds,color){
   const el=document.getElementById(eid);if(!el)return;
-  const diff=new Date(ds)-new Date();
+  // Append T12:00:00 so the date is parsed as local noon, avoiding off-by-one from
+  // UTC midnight rolling over into the previous day in IST (+5:30).
+  if(!ds||ds.trim()===''){el.innerHTML=`<span class="cd-d" style="color:${color}">—</span>`;return;}
+  const target=new Date(ds.trim()+'T12:00:00');
+  if(isNaN(target.getTime())){el.innerHTML=`<span class="cd-d" style="color:${color}">?</span>`;return;}
+  const diff=target.getTime()-Date.now();
   if(diff<=0){el.innerHTML=`<span class="cd-d" style="color:${color}">🎓</span>`;return;}
-  const d=Math.floor(diff/86400000),h=Math.floor((diff%86400000)/3600000);
-  const m=Math.floor((diff%3600000)/60000),s=Math.floor((diff%60000)/1000);
-  el.innerHTML=`<span class="cd-d" style="color:${color}">${String(d).padStart(3,'0')}</span><span style="color:#3f3f46;font-weight:700;font-size:.8rem">d</span><span class="cd-d" style="color:${color}">${String(h).padStart(2,'0')}</span><span style="color:#3f3f46;font-weight:700;font-size:.8rem">h</span><span class="cd-d" style="color:${color}">${String(m).padStart(2,'0')}</span><span style="color:#3f3f46;font-weight:700;font-size:.8rem">m</span><span class="cd-d" style="color:${color}">${String(s).padStart(2,'0')}</span><span style="color:#3f3f46;font-weight:700;font-size:.8rem">s</span>`;
+  const d=Math.floor(diff/86400000);
+  const h=Math.floor((diff%86400000)/3600000);
+  const m=Math.floor((diff%3600000)/60000);
+  const s=Math.floor((diff%60000)/1000);
+  el.innerHTML=
+    `<span class="cd-d" style="color:${color}">${String(d).padStart(3,'0')}</span>`+
+    `<span style="color:#3f3f46;font-weight:700;font-size:.8rem">d</span>`+
+    `<span class="cd-d" style="color:${color}">${String(h).padStart(2,'0')}</span>`+
+    `<span style="color:#3f3f46;font-weight:700;font-size:.8rem">h</span>`+
+    `<span class="cd-d" style="color:${color}">${String(m).padStart(2,'0')}</span>`+
+    `<span style="color:#3f3f46;font-weight:700;font-size:.8rem">m</span>`+
+    `<span class="cd-d" style="color:${color}">${String(s).padStart(2,'0')}</span>`+
+    `<span style="color:#3f3f46;font-weight:700;font-size:.8rem">s</span>`;
 }
 
 // --- STREAK ---
@@ -1335,11 +1484,66 @@ function doReset(){S=defS();saveS();closeRM();initApp();toast('🗑️ All data 
 
 // --- FOCUS PORTAL ---
 function saveFURL(){S.focusUrl=gV('furl')||'https://www.pw.live';saveS();toast('💾 URL saved!','cy');}
+
+// Session stopwatch state
+let _fpStart=null, _fpInterval=null;
+
 function launchFP(){
   const url=gV('furl')||S.focusUrl||'https://www.pw.live';
   S.focusUrl=url;saveS();
-  const i=document.getElementById('fiframe');if(i)i.src=url;
+  const iframe=document.getElementById('fiframe');
+  if(iframe)iframe.src=url;
   toast('🚀 Focus portal launched!','vi');
+  // Start session timer
+  _fpStart=Date.now();
+  if(_fpInterval)clearInterval(_fpInterval);
+  const timerEl=document.getElementById('fp-timer');
+  const bar=document.getElementById('fp-session-bar');
+  if(bar)bar.style.display='block';
+  _fpInterval=setInterval(()=>{
+    if(!_fpStart)return;
+    const elapsed=Date.now()-_fpStart;
+    const hh=Math.floor(elapsed/3600000);
+    const mm=Math.floor((elapsed%3600000)/60000);
+    const ss=Math.floor((elapsed%60000)/1000);
+    if(timerEl)timerEl.textContent=
+      String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0');
+  },1000);
+}
+
+function endFPSession(){
+  if(!_fpStart){toast('No active session.','rd');return;}
+  clearInterval(_fpInterval);_fpInterval=null;
+  const elapsed=Date.now()-_fpStart;
+  _fpStart=null;
+  // Calculate hours (rounded to 1 decimal)
+  const hrs=Math.round((elapsed/3600000)*10)/10;
+  const today=new Date().toISOString().split('T')[0];
+  // Hide the timer bar and reset display
+  const bar=document.getElementById('fp-session-bar');
+  if(bar)bar.style.display='none';
+  const timerEl=document.getElementById('fp-timer');
+  if(timerEl)timerEl.textContent='00:00:00';
+  // Switch to Study Hours tab and pre-fill the form
+  sw('study');
+  sV('sdt',today);
+  // Add to practice hours (append to existing value if any)
+  const existingPr=parseFloat(document.getElementById('spr')?.value||'0')||0;
+  sV('spr', Math.round((existingPr+hrs)*10)/10);
+  sV('sno','Focus Portal session — '+hrs+'h');
+  // Fire the log immediately
+  logStudy();
+  addXP(100,null);
+  toast('🛑 Session ended: '+hrs+'h logged & +100 XP!','am');
+  spawnP({clientX:window.innerWidth/2,clientY:200});
+}
+
+function enterFPFullscreen(){
+  const wrap=document.getElementById('fp-iframe-wrap');
+  if(!wrap){toast('No iframe to fullscreen.','rd');return;}
+  const req=wrap.requestFullscreen||wrap.webkitRequestFullscreen||wrap.mozRequestFullScreen||wrap.msRequestFullscreen;
+  if(req)req.call(wrap).catch(()=>toast('Fullscreen denied by browser.','rd'));
+  else toast('Fullscreen not supported.','rd');
 }
 
 // --- INIT ---
