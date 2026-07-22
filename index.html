@@ -639,14 +639,17 @@ label.btn{cursor:pointer}
     <div class="card" style="padding:14px 20px;background:linear-gradient(135deg,rgba(139,92,246,.12),rgba(6,182,212,.08));border-color:rgba(139,92,246,.35)">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
         <div style="display:flex;align-items:center;gap:14px">
-          <!-- Pulsing live dot -->
-          <span style="width:10px;height:10px;border-radius:50%;background:var(--em);display:inline-block;animation:liveDot 1.2s ease-in-out infinite"></span>
+          <!-- Live indicator dot -->
+          <span id="fp-dot" style="width:10px;height:10px;border-radius:50%;background:var(--em);display:inline-block;animation:liveDot 1.2s ease-in-out infinite"></span>
           <div>
-            <div style="font-size:.65rem;font-weight:700;color:var(--tm);letter-spacing:.07em">SESSION IN PROGRESS</div>
+            <div id="fp-status-label" style="font-size:.65rem;font-weight:700;color:var(--tm);letter-spacing:.07em">SESSION IN PROGRESS</div>
             <div id="fp-timer" style="font-size:1.6rem;font-weight:900;color:var(--cyan);font-family:'JetBrains Mono',monospace;letter-spacing:.04em">00:00:00</div>
           </div>
         </div>
-        <button class="btn bdr" onclick="endFPSession()">🛑 End Session &amp; Save Log</button>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn ba" id="fp-pause-btn" onclick="toggleFPPause()">⏸️ Pause</button>
+          <button class="btn bdr" onclick="endFPSession()">🛑 End Session &amp; Save Log</button>
+        </div>
       </div>
     </div>
   </div>
@@ -657,7 +660,7 @@ label.btn{cursor:pointer}
       <div style="font-size:.75rem;font-weight:600;color:var(--tm)">🎯 DISTRACTION-FREE STUDY MODE</div>
       <span style="font-size:.68rem;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);border-radius:99px;padding:2px 8px;color:#34d399">ACTIVE</span>
     </div>
-    <iframe id="fiframe" src="about:blank" sandbox="allow-scripts allow-forms allow-same-origin allow-popups" title="Study Platform"></iframe>
+    <iframe id="fiframe" src="about:blank" title="Study Platform" style="border:none;border-radius:12px;width:100%;height:500px;background:var(--bg-c)" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe>
   </div>
 </div>
 
@@ -1552,7 +1555,7 @@ function doReset(){S=defS();saveS();closeRM();initApp();toast('🗑️ All data 
 function saveFURL(){S.focusUrl=gV('furl')||'https://www.pw.live';saveS();toast('💾 URL saved!','cy');}
 
 // Session stopwatch state
-let _fpStart=null, _fpInterval=null;
+let _fpStart=null, _fpInterval=null, _fpPaused=false, _fpAccumulatedTime=0;
 
 function launchFP(){
   const url=gV('furl')||S.focusUrl||'https://www.pw.live';
@@ -1560,15 +1563,29 @@ function launchFP(){
   const iframe=document.getElementById('fiframe');
   if(iframe)iframe.src=url;
   toast('🚀 Focus portal launched!','vi');
-  // Start session timer
+  
+  // Reset session timer state
   _fpStart=Date.now();
+  _fpAccumulatedTime=0;
+  _fpPaused=false;
+  
+  const pauseBtn=document.getElementById('fp-pause-btn');
+  if(pauseBtn)pauseBtn.innerHTML='⏸️ Pause';
+  const dot=document.getElementById('fp-dot');
+  if(dot)dot.style.background='var(--em)';
+  const label=document.getElementById('fp-status-label');
+  if(label)label.textContent='SESSION IN PROGRESS';
+
   if(_fpInterval)clearInterval(_fpInterval);
   const timerEl=document.getElementById('fp-timer');
   const bar=document.getElementById('fp-session-bar');
   if(bar)bar.style.display='block';
+  
   _fpInterval=setInterval(()=>{
-    if(!_fpStart)return;
-    const elapsed=Date.now()-_fpStart;
+    let elapsed = _fpAccumulatedTime;
+    if(!_fpPaused && _fpStart){
+      elapsed += (Date.now() - _fpStart);
+    }
     const hh=Math.floor(elapsed/3600000);
     const mm=Math.floor((elapsed%3600000)/60000);
     const ss=Math.floor((elapsed%60000)/1000);
@@ -1577,26 +1594,65 @@ function launchFP(){
   },1000);
 }
 
+function toggleFPPause(){
+  if(!_fpStart && !_fpPaused && _fpAccumulatedTime===0){
+    toast('No active session.','rd');return;
+  }
+  const pauseBtn=document.getElementById('fp-pause-btn');
+  const dot=document.getElementById('fp-dot');
+  const label=document.getElementById('fp-status-label');
+
+  if(!_fpPaused){
+    // Pause timer
+    _fpPaused=true;
+    if(_fpStart){
+      _fpAccumulatedTime += (Date.now() - _fpStart);
+      _fpStart=null;
+    }
+    if(pauseBtn)pauseBtn.innerHTML='▶️ Resume';
+    if(dot)dot.style.background='var(--am)';
+    if(label)label.textContent='SESSION PAUSED';
+    toast('⏸️ Session paused','am');
+  } else {
+    // Resume timer
+    _fpPaused=false;
+    _fpStart=Date.now();
+    if(pauseBtn)pauseBtn.innerHTML='⏸️ Pause';
+    if(dot)dot.style.background='var(--em)';
+    if(label)label.textContent='SESSION IN PROGRESS';
+    toast('▶️ Session resumed','em');
+  }
+}
+
 function endFPSession(){
-  if(!_fpStart){toast('No active session.','rd');return;}
+  if(!_fpStart && !_fpPaused && _fpAccumulatedTime===0){
+    toast('No active session.','rd');return;
+  }
   clearInterval(_fpInterval);_fpInterval=null;
-  const elapsed=Date.now()-_fpStart;
-  _fpStart=null;
+  
+  let totalElapsed = _fpAccumulatedTime;
+  if(!_fpPaused && _fpStart){
+    totalElapsed += (Date.now() - _fpStart);
+  }
+  _fpStart=null; _fpAccumulatedTime=0; _fpPaused=false;
+
   // Calculate hours (rounded to 1 decimal)
-  const hrs=Math.round((elapsed/3600000)*10)/10;
+  const hrs=Math.round((totalElapsed/3600000)*10)/10;
   const today=new Date().toISOString().split('T')[0];
+  
   // Hide the timer bar and reset display
   const bar=document.getElementById('fp-session-bar');
   if(bar)bar.style.display='none';
   const timerEl=document.getElementById('fp-timer');
   if(timerEl)timerEl.textContent='00:00:00';
+  
   // Switch to Study Hours tab and pre-fill the form
   sw('study');
   sV('sdt',today);
-  // Add to practice hours (append to existing value if any)
   const existingPr=parseFloat(document.getElementById('spr')?.value||'0')||0;
   sV('spr', Math.round((existingPr+hrs)*10)/10);
   sV('sno','Focus Portal session — '+hrs+'h');
+  
   // Fire the log immediately
   logStudy();
   addXP(100,null);
