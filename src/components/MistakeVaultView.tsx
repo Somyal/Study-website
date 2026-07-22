@@ -6,7 +6,7 @@ import { ALL_CHAPTERS } from '../data/chapters';
 import { AlertTriangle, Plus, Trash2, CheckCircle2, Clock, Filter } from 'lucide-react';
 
 interface MistakeVaultViewProps {
-  onShowToast: (msg: string, type?: string) => void;
+  onShowToast: (msg: string, type?: string, onUndo?: () => void) => void;
 }
 
 export const MistakeVaultView: React.FC<MistakeVaultViewProps> = ({ onShowToast }) => {
@@ -213,7 +213,7 @@ export const MistakeVaultView: React.FC<MistakeVaultViewProps> = ({ onShowToast 
 
               <select
                 value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value as any)}
+                onChange={(e) => setFilterStatus(e.target.value as 'all' | 'open' | 'resolving' | 'resolved')}
                 className="bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl px-2.5 py-1 text-xs text-[var(--tp)] outline-none"
               >
                 <option value="all">All Statuses</option>
@@ -285,7 +285,7 @@ export const MistakeVaultView: React.FC<MistakeVaultViewProps> = ({ onShowToast 
                       <span className="text-[10px] text-[var(--tm)]">Status Tracking</span>
                       <select
                         value={m.status}
-                        onChange={(e) => store.updateMistakeStatus(m.id, e.target.value as any)}
+                        onChange={(e) => store.updateMistakeStatus(m.id, e.target.value as 'open' | 'resolving' | 'resolved')}
                         className={`text-xs font-bold rounded-lg px-2.5 py-1 outline-none border cursor-pointer ${statusClass(m.status)}`}
                       >
                         <option value="open">Open</option>

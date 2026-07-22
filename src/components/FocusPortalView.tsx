@@ -110,10 +110,11 @@ export const FocusPortalView: React.FC<FocusPortalViewProps> = ({ onShowToast })
   // Fullscreen change listener
   useEffect(() => {
     const handleFullscreenChange = () => {
+      const doc = document as Document & { webkitFullscreenElement?: Element | null; msFullscreenElement?: Element | null };
       const fsElement =
         document.fullscreenElement ||
-        (document as any).webkitFullscreenElement ||
-        (document as any).msFullscreenElement;
+        doc.webkitFullscreenElement ||
+        doc.msFullscreenElement;
       setIsFullscreen(!!fsElement);
     };
 
@@ -252,20 +253,26 @@ export const FocusPortalView: React.FC<FocusPortalViewProps> = ({ onShowToast })
           element.requestFullscreen().catch(() => {
             onShowToast('Fullscreen denied by browser permissions', 'rose');
           });
-        } else if ((element as any).webkitRequestFullscreen) {
-          (element as any).webkitRequestFullscreen();
-        } else if ((element as any).msRequestFullscreen) {
-          (element as any).msRequestFullscreen();
         } else {
-          onShowToast('Fullscreen is not supported on this browser', 'rose');
+          const el = element as HTMLElement & { webkitRequestFullscreen?: () => Promise<void>; msRequestFullscreen?: () => Promise<void> };
+          if (el.webkitRequestFullscreen) {
+            el.webkitRequestFullscreen();
+          } else if (el.msRequestFullscreen) {
+            el.msRequestFullscreen();
+          } else {
+            onShowToast('Fullscreen is not supported on this browser', 'rose');
+          }
         }
       } else {
         if (document.exitFullscreen) {
           document.exitFullscreen();
-        } else if ((document as any).webkitExitFullscreen) {
-          (document as any).webkitExitFullscreen();
-        } else if ((document as any).msExitFullscreen) {
-          (document as any).msExitFullscreen();
+        } else {
+          const doc = document as Document & { webkitExitFullscreen?: () => Promise<void>; msExitFullscreen?: () => Promise<void> };
+          if (doc.webkitExitFullscreen) {
+            doc.webkitExitFullscreen();
+          } else if (doc.msExitFullscreen) {
+            doc.msExitFullscreen();
+          }
         }
       }
     } catch {

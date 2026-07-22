@@ -113,8 +113,8 @@ export function App() {
 
   const showToast = (msg: string, type: string = 'cyan', onUndo?: () => void) => {
     const id = Date.now() + '_' + Math.random().toString(36).substr(2, 4);
-    const validTypes: Array<ToastMessage['type']> = ['emerald', 'cyan', 'amber', 'violet', 'rose'];
-    const toastType = validTypes.includes(type as any) ? (type as ToastMessage['type']) : 'cyan';
+    const validTypes: string[] = ['emerald', 'cyan', 'amber', 'violet', 'rose'];
+    const toastType = validTypes.includes(type) ? (type as ToastMessage['type']) : 'cyan';
     const newToast: ToastMessage = { id, msg, type: toastType, onUndo };
     setToasts((prev) => [...prev, newToast]);
     setTimeout(() => {

@@ -7,7 +7,7 @@ import { getPyqSolvedCount } from '../utils/calculations';
 import { Check, Trash2, Pin, Sparkles } from 'lucide-react';
 
 interface BacklogViewProps {
-  onShowToast: (msg: string, type?: string) => void;
+  onShowToast: (msg: string, type?: string, onUndo?: () => void) => void;
 }
 
 export const BacklogView: React.FC<BacklogViewProps> = ({ onShowToast }) => {

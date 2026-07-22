@@ -5,7 +5,7 @@ import { Chart } from 'chart.js';
 import { Clock, Plus, BarChart2, Trash2, Calendar, FileText } from 'lucide-react';
 
 interface StudyHoursViewProps {
-  onShowToast: (msg: string, type?: string) => void;
+  onShowToast: (msg: string, type?: string, onUndo?: () => void) => void;
 }
 
 export const StudyHoursView: React.FC<StudyHoursViewProps> = ({ onShowToast }) => {

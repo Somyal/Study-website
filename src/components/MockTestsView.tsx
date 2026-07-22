@@ -7,7 +7,7 @@ import { BarChart2, Plus, LineChart, PieChart, Trash2, Calendar, FileText, Atom,
 Chart.register(...registerables);
 
 interface MockTestsViewProps {
-  onShowToast: (msg: string, type?: string) => void;
+  onShowToast: (msg: string, type?: string, onUndo?: () => void) => void;
 }
 
 export const MockTestsView: React.FC<MockTestsViewProps> = ({ onShowToast }) => {
@@ -51,7 +51,7 @@ export const MockTestsView: React.FC<MockTestsViewProps> = ({ onShowToast }) => 
       return;
     }
 
-    const { id: _id, ...testFields } = {
+    const newTest: Omit<MockTest, 'id'> = {
       name: testName.trim(),
       date: testDate || getLocalDateString(),
       ph: typeof phScore === 'number' ? Math.max(0, Math.min(100, phScore)) : 0,
@@ -67,12 +67,10 @@ export const MockTestsView: React.FC<MockTestsViewProps> = ({ onShowToast }) => 
         misread: typeof errMisread === 'number' ? errMisread : 0,
         timePressure: typeof errTime === 'number' ? errTime : 0,
       },
-    } as MockTest;
-
-    const newTest: Omit<MockTest, 'id'> = testFields;
+    };
 
     store.addMockTest(newTest);
-    onShowToast(`Logged test score: ${autoTotal}/300! +150 XP`, 'emerald');
+    onShowToast(`Logged test score: ${autoTotal}/300! +200 XP`, 'emerald');
 
     // Reset Form
     setTestName('');
@@ -346,7 +344,7 @@ export const MockTestsView: React.FC<MockTestsViewProps> = ({ onShowToast }) => 
             type="submit"
             className="w-full py-2.5 bg-[var(--gold)] text-[var(--bg)] font-bold text-xs rounded-xl hover:bg-[var(--gold-hover)] transition-all cursor-pointer"
           >
-            Log Test Result (+150 XP)
+            Log Test Result (+200 XP)
           </button>
         </form>
 
