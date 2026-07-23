@@ -13,6 +13,7 @@ import { DashboardView } from './components/DashboardView';
 import { CommandPalette } from './components/CommandPalette';
 import { ToastContainer, ToastMessage } from './components/ToastContainer';
 import { QuickLogOverlay } from './components/QuickLogOverlay';
+import { PrayasLectureTrackerView } from './components/PrayasLectureTrackerView';
 import { store } from './store';
 import { calcUserLevel } from './utils/calculations';
 import { BADGE_DEFINITIONS } from './data/badges';
@@ -35,6 +36,7 @@ const TAB_TITLES: Record<string, string> = {
   badges: 'Achievements',
   study: 'Study Hours',
   focus: 'Focus Portal',
+  prayas: 'Prayas Lectures',
   settings: 'Settings',
 };
 
@@ -204,6 +206,7 @@ export function App() {
               {activeTab === 'badges' && <BadgesView />}
               {activeTab === 'study' && <StudyHoursView onShowToast={showToast} />}
               {activeTab === 'focus' && <FocusPortalView onShowToast={showToast} />}
+              {activeTab === 'prayas' && <PrayasLectureTrackerView onShowToast={showToast} />}
               {activeTab === 'settings' && <SettingsView onShowToast={showToast} />}
             </motion.div>
           </AnimatePresence>

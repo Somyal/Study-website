@@ -2,6 +2,12 @@ export type SubjectId = 'physics' | 'chemistry' | 'mathematics';
 export type Weightage = 'High' | 'Medium' | 'Low';
 export type ChemistrySubtype = 'Physical' | 'Organic' | 'Inorganic';
 export type StageKey = 'theory' | 'dpp' | 'pyq' | 'revision';
+export type PrayasSubject =
+  | 'Physics'
+  | 'Physical Chemistry'
+  | 'Inorganic Chemistry'
+  | 'Organic Chemistry'
+  | 'Mathematics';
 
 export interface Chapter {
   id: string;
@@ -39,6 +45,7 @@ export interface MockTest {
     misread: number;
     timePressure: number;
   };
+  scheduledTestId?: string;
 }
 
 export interface StudyLog {
@@ -95,6 +102,26 @@ export interface BadgeDefinition {
   check: (state: AppState) => boolean;
 }
 
+export interface ChapterLectureData {
+  id: string;
+  subject: PrayasSubject;
+  chapterName: string;
+  totalLectures: number;
+}
+
+export interface ScheduledTest {
+  id: string;
+  name: string;
+  date: string;
+  testType: 'Part Test' | 'Full Test';
+  pattern: 'JEE Main' | 'JEE Advanced';
+  syllabus: {
+    physics: string;
+    chemistry: string;
+    maths: string;
+  };
+}
+
 export interface AppState {
   version: number;
   chapters: Record<string, ChapterUserData>;
@@ -108,4 +135,6 @@ export interface AppState {
   badges: Record<string, boolean>;
   mistakes: MistakeItem[];
   focusUrl?: string;
+  prayasLectures: Record<string, boolean>;
+  prayasAttemptedIds: string[];
 }

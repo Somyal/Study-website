@@ -1,0 +1,120 @@
+export interface ChapterLectureData {
+  id: string;
+  subject:
+    | 'Physics'
+    | 'Physical Chemistry'
+    | 'Inorganic Chemistry'
+    | 'Organic Chemistry'
+    | 'Mathematics';
+  chapterName: string;
+  totalLectures: number;
+}
+
+export const PRAYAS_SYLLABUS: ChapterLectureData[] = [
+  { id: 'ioc-1', subject: 'Inorganic Chemistry', chapterName: 'Classification of Elements and Periodicity in Properties', totalLectures: 9 },
+  { id: 'ioc-2', subject: 'Inorganic Chemistry', chapterName: 'Chemical Bonding and Molecular Structure', totalLectures: 17 },
+  { id: 'ioc-3', subject: 'Inorganic Chemistry', chapterName: 'Coordination Compounds', totalLectures: 14 },
+  { id: 'ioc-4', subject: 'Inorganic Chemistry', chapterName: 'p-Block Elements', totalLectures: 5 },
+  { id: 'ioc-5', subject: 'Inorganic Chemistry', chapterName: 'The d- and f-Block Elements', totalLectures: 1 },
+  { id: 'ioc-6', subject: 'Inorganic Chemistry', chapterName: 'Principles of Qualitative Analysis (Salt Analysis)', totalLectures: 8 },
+  { id: 'ioc-7', subject: 'Inorganic Chemistry', chapterName: 'General Principles of Isolation of Metals (Metallurgy)', totalLectures: 1 },
+  { id: 'ioc-8', subject: 'Inorganic Chemistry', chapterName: 'Hydrogen and its Compounds', totalLectures: 1 },
+  { id: 'ioc-9', subject: 'Inorganic Chemistry', chapterName: 's-Block Elements', totalLectures: 1 },
+  { id: 'oc-1', subject: 'Organic Chemistry', chapterName: 'IUPAC Nomenclature', totalLectures: 8 },
+  { id: 'oc-2', subject: 'Organic Chemistry', chapterName: 'General Organic Chemistry (GOC)', totalLectures: 12 },
+  { id: 'oc-3', subject: 'Organic Chemistry', chapterName: 'Isomerism', totalLectures: 14 },
+  { id: 'oc-4', subject: 'Organic Chemistry', chapterName: 'Hydrocarbons', totalLectures: 12 },
+  { id: 'oc-5', subject: 'Organic Chemistry', chapterName: 'Haloalkanes and Haloarenes', totalLectures: 8 },
+  { id: 'oc-6', subject: 'Organic Chemistry', chapterName: 'Alcohols, Phenols and Ethers', totalLectures: 5 },
+  { id: 'oc-7', subject: 'Organic Chemistry', chapterName: 'Aldehydes, Ketones and Carboxylic Acids', totalLectures: 6 },
+  { id: 'oc-8', subject: 'Organic Chemistry', chapterName: 'Amines', totalLectures: 1 },
+  { id: 'oc-9', subject: 'Organic Chemistry', chapterName: 'Biomolecules', totalLectures: 1 },
+  { id: 'oc-10', subject: 'Organic Chemistry', chapterName: 'Polymers, Everyday Life & Environmental Chemistry', totalLectures: 3 },
+  { id: 'pc-1', subject: 'Physical Chemistry', chapterName: 'Some Basic Concepts of Chemistry', totalLectures: 12 },
+  { id: 'pc-2', subject: 'Physical Chemistry', chapterName: 'Redox Reactions', totalLectures: 5 },
+  { id: 'pc-3', subject: 'Physical Chemistry', chapterName: 'Structure of Atom', totalLectures: 7 },
+  { id: 'pc-4', subject: 'Physical Chemistry', chapterName: 'Solutions', totalLectures: 7 },
+  { id: 'pc-5', subject: 'Physical Chemistry', chapterName: 'Chemical Kinetics', totalLectures: 7 },
+  { id: 'pc-6', subject: 'Physical Chemistry', chapterName: 'Thermodynamics', totalLectures: 10 },
+  { id: 'pc-7', subject: 'Physical Chemistry', chapterName: 'Chemical Equilibrium', totalLectures: 5 },
+  { id: 'pc-8', subject: 'Physical Chemistry', chapterName: 'Ionic Equilibrium', totalLectures: 6 },
+  { id: 'pc-9', subject: 'Physical Chemistry', chapterName: 'Electrochemistry', totalLectures: 7 },
+  { id: 'pc-10', subject: 'Physical Chemistry', chapterName: 'State of Matter', totalLectures: 1 },
+  { id: 'pc-11', subject: 'Physical Chemistry', chapterName: 'The Solid State', totalLectures: 1 },
+  { id: 'pc-12', subject: 'Physical Chemistry', chapterName: 'Surface Chemistry', totalLectures: 1 },
+  { id: 'm-1', subject: 'Mathematics', chapterName: 'Basic Mathematics', totalLectures: 12 },
+  { id: 'm-2', subject: 'Mathematics', chapterName: 'Quadratic Equations', totalLectures: 9 },
+  { id: 'm-3', subject: 'Mathematics', chapterName: 'Sequence and Series', totalLectures: 9 },
+  { id: 'm-4', subject: 'Mathematics', chapterName: 'Trigonometric Functions', totalLectures: 8 },
+  { id: 'm-5', subject: 'Mathematics', chapterName: 'Trigonometric Equations', totalLectures: 5 },
+  { id: 'm-6', subject: 'Mathematics', chapterName: 'Permutations and Combinations', totalLectures: 9 },
+  { id: 'm-7', subject: 'Mathematics', chapterName: 'Binomial Theorem', totalLectures: 5 },
+  { id: 'm-8', subject: 'Mathematics', chapterName: 'Straight Lines', totalLectures: 10 },
+  { id: 'm-9', subject: 'Mathematics', chapterName: 'Circles', totalLectures: 7 },
+  { id: 'm-10', subject: 'Mathematics', chapterName: 'Conic Sections: Parabola', totalLectures: 5 },
+  { id: 'm-11', subject: 'Mathematics', chapterName: 'Conic Sections: Ellipse', totalLectures: 5 },
+  { id: 'm-12', subject: 'Mathematics', chapterName: 'Conic Sections: Hyperbola', totalLectures: 2 },
+  { id: 'm-13', subject: 'Mathematics', chapterName: 'Determinants', totalLectures: 4 },
+  { id: 'm-14', subject: 'Mathematics', chapterName: 'Matrices', totalLectures: 6 },
+  { id: 'm-15', subject: 'Mathematics', chapterName: 'Sets', totalLectures: 3 },
+  { id: 'm-16', subject: 'Mathematics', chapterName: 'Relations and Functions', totalLectures: 12 },
+  { id: 'm-17', subject: 'Mathematics', chapterName: 'Inverse Trigonometric Functions', totalLectures: 4 },
+  { id: 'm-18', subject: 'Mathematics', chapterName: 'Method of Differentiation', totalLectures: 3 },
+  { id: 'm-19', subject: 'Mathematics', chapterName: 'Limit, Continuity and Differentiability', totalLectures: 9 },
+  { id: 'm-20', subject: 'Mathematics', chapterName: 'Indefinite Integration', totalLectures: 5 },
+  { id: 'm-21', subject: 'Mathematics', chapterName: 'Application of Derivatives', totalLectures: 5 },
+  { id: 'm-22', subject: 'Mathematics', chapterName: 'Definite Integration', totalLectures: 5 },
+  { id: 'm-23', subject: 'Mathematics', chapterName: 'Application of Integrals', totalLectures: 2 },
+  { id: 'm-24', subject: 'Mathematics', chapterName: 'Differential Equations', totalLectures: 4 },
+  { id: 'm-25', subject: 'Mathematics', chapterName: 'Vector Algebra', totalLectures: 5 },
+  { id: 'm-26', subject: 'Mathematics', chapterName: 'Three Dimensional Geometry', totalLectures: 4 },
+  { id: 'm-27', subject: 'Mathematics', chapterName: 'Statistics', totalLectures: 2 },
+  { id: 'm-28', subject: 'Mathematics', chapterName: 'Probability', totalLectures: 4 },
+  { id: 'm-29', subject: 'Mathematics', chapterName: 'Complex Numbers', totalLectures: 4 },
+  { id: 'm-30', subject: 'Mathematics', chapterName: 'Solution of Triangles', totalLectures: 1 },
+  { id: 'p-1', subject: 'Physics', chapterName: 'Mathematical Tools', totalLectures: 4 },
+  { id: 'p-2', subject: 'Physics', chapterName: 'Motion in a Straight Line', totalLectures: 7 },
+  { id: 'p-3', subject: 'Physics', chapterName: 'Motion in a Plane', totalLectures: 6 },
+  { id: 'p-4', subject: 'Physics', chapterName: 'Laws of Motion', totalLectures: 9 },
+  { id: 'p-5', subject: 'Physics', chapterName: 'Work, Energy and Power', totalLectures: 9 },
+  { id: 'p-6', subject: 'Physics', chapterName: 'Circular Motion', totalLectures: 5 },
+  { id: 'p-7', subject: 'Physics', chapterName: 'Centre of Mass & System of Particles', totalLectures: 9 },
+  { id: 'p-8', subject: 'Physics', chapterName: 'Rotational Motion', totalLectures: 12 },
+  { id: 'p-9', subject: 'Physics', chapterName: 'Mechanical Properties of Solids', totalLectures: 1 },
+  { id: 'p-10', subject: 'Physics', chapterName: 'Thermal Properties of Matter', totalLectures: 4 },
+  { id: 'p-11', subject: 'Physics', chapterName: 'Kinetic Theory of Gases', totalLectures: 2 },
+  { id: 'p-12', subject: 'Physics', chapterName: 'Thermodynamics', totalLectures: 5 },
+  { id: 'p-13', subject: 'Physics', chapterName: 'Mechanical Properties of Fluids', totalLectures: 7 },
+  { id: 'p-14', subject: 'Physics', chapterName: 'Oscillations (SHM)', totalLectures: 6 },
+  { id: 'p-15', subject: 'Physics', chapterName: 'Waves', totalLectures: 6 },
+  { id: 'p-16', subject: 'Physics', chapterName: 'Electric Charges and Fields', totalLectures: 12 },
+  { id: 'p-17', subject: 'Physics', chapterName: 'Gravitation', totalLectures: 2 },
+  { id: 'p-18', subject: 'Physics', chapterName: 'Current Electricity', totalLectures: 6 },
+  { id: 'p-19', subject: 'Physics', chapterName: 'Electrostatic Potential and Capacitance', totalLectures: 6 },
+  { id: 'p-20', subject: 'Physics', chapterName: 'Moving Charges and Magnetism', totalLectures: 8 },
+  { id: 'p-21', subject: 'Physics', chapterName: 'Magnetism and Matter', totalLectures: 1 },
+  { id: 'p-22', subject: 'Physics', chapterName: 'Electromagnetic Induction', totalLectures: 6 },
+  { id: 'p-23', subject: 'Physics', chapterName: 'Alternating Current', totalLectures: 3 },
+  { id: 'p-24', subject: 'Physics', chapterName: 'Electromagnetic Waves', totalLectures: 2 },
+  { id: 'p-25', subject: 'Physics', chapterName: 'Ray Optics and Optical Instruments', totalLectures: 12 },
+  { id: 'p-26', subject: 'Physics', chapterName: 'Wave Optics', totalLectures: 5 },
+  { id: 'p-27', subject: 'Physics', chapterName: 'Dual Nature of Radiation and Matter', totalLectures: 2 },
+  { id: 'p-28', subject: 'Physics', chapterName: 'Atoms', totalLectures: 2 },
+  { id: 'p-29', subject: 'Physics', chapterName: 'Nuclei', totalLectures: 2 },
+  { id: 'p-30', subject: 'Physics', chapterName: 'Semiconductor Electronics', totalLectures: 2 },
+  { id: 'p-31', subject: 'Physics', chapterName: 'Units and Measurements & Errors', totalLectures: 2 },
+];
+
+export const PRAYAS_SUBJECTS = [
+  'Physics',
+  'Physical Chemistry',
+  'Inorganic Chemistry',
+  'Organic Chemistry',
+  'Mathematics',
+] as const;
+
+export type PrayasSubject = typeof PRAYAS_SUBJECTS[number];
+
+export function getPrayasChaptersForSubject(subject: string): ChapterLectureData[] {
+  return PRAYAS_SYLLABUS.filter((ch) => ch.subject === subject);
+}

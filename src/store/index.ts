@@ -22,7 +22,7 @@ export function getLocalDateString(d: Date = new Date()): string {
 
 export function getDefaultState(): AppState {
   return {
-    version: 4,
+    version: 5,
     chapters: {},
     tests: [],
     studyLogs: [],
@@ -34,6 +34,8 @@ export function getDefaultState(): AppState {
     xp: 0,
     focusUrl: 'https://www.pw.live/study-v2/batches',
     mistakes: [],
+    prayasLectures: {},
+    prayasAttemptedIds: [],
   };
 }
 
@@ -79,6 +81,8 @@ class Store {
           mistakes: Array.isArray(parsed.mistakes) ? parsed.mistakes : [],
           xp: typeof parsed.xp === 'number' ? parsed.xp : 0,
           focusUrl: parsed.focusUrl || defaultState.focusUrl,
+          prayasLectures: typeof parsed.prayasLectures === 'object' && parsed.prayasLectures !== null ? parsed.prayasLectures : {},
+          prayasAttemptedIds: Array.isArray(parsed.prayasAttemptedIds) ? parsed.prayasAttemptedIds : [],
         };
         return merged;
       }
@@ -306,6 +310,29 @@ class Store {
     this.notify();
   }
 
+  public togglePrayasLecture(chapterId: string): boolean {
+    const prev = !!this.state.prayasLectures[chapterId];
+    this.state.prayasLectures[chapterId] = !prev;
+    if (!prev) {
+      this.state.xp += 15;
+    } else {
+      this.state.xp = Math.max(0, this.state.xp - 15);
+    }
+    this.notify();
+    return !prev;
+  }
+
+  public markPrayasTestAttempted(scheduledTestId: string): void {
+    if (!this.state.prayasAttemptedIds.includes(scheduledTestId)) {
+      this.state.prayasAttemptedIds = [...this.state.prayasAttemptedIds, scheduledTestId];
+      this.notify();
+    }
+  }
+
+  public isPrayasTestAttempted(scheduledTestId: string): boolean {
+    return this.state.prayasAttemptedIds.includes(scheduledTestId);
+  }
+
   public updateStreak(): void {
     const today = getLocalDateString();
     if (this.state.streak.last !== today) {
@@ -396,6 +423,8 @@ class Store {
         settings: { ...getDefaultState().settings, ...(imported.settings || {}) },
         streak: { ...getDefaultState().streak, ...(imported.streak || {}) },
         mistakes: Array.isArray(imported.mistakes) ? imported.mistakes : [],
+        prayasLectures: typeof imported.prayasLectures === 'object' && imported.prayasLectures !== null ? imported.prayasLectures : {},
+        prayasAttemptedIds: Array.isArray(imported.prayasAttemptedIds) ? imported.prayasAttemptedIds : [],
       };
       this.sanitizeDates();
       this.notify();

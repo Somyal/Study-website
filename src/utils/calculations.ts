@@ -1,5 +1,6 @@
-import { SubjectId, AppState, StageKey } from '../types';
+import { SubjectId, AppState, StageKey, PrayasSubject } from '../types';
 import { ALL_CHAPTERS, PHYSICS_CHAPTERS, CHEMISTRY_CHAPTERS, MATHEMATICS_CHAPTERS } from '../data/chapters';
+import { PRAYAS_SYLLABUS } from '../data/prayasSyllabusData';
 import { PYQ_SHIFT_KEYS } from '../data/pyqShifts';
 import { store } from '../store';
 
@@ -145,4 +146,37 @@ export function calcUserLevel(xp: number): { level: number; levelTitle: string; 
     nextLevelXp: nextReqXp,
     progressPct,
   };
+}
+
+export function calcPrayasSubjectPct(subject: string, state?: AppState): number {
+  const currentState = state || store.getState();
+  const chapters = PRAYAS_SYLLABUS.filter((ch) => ch.subject === subject);
+
+  if (chapters.length === 0) return 0;
+
+  let totalCompleted = 0;
+  let totalLectures = 0;
+  chapters.forEach((ch) => {
+    totalLectures += ch.totalLectures;
+    const completed = (currentState.prayasLectures && currentState.prayasLectures[ch.id]) ? ch.totalLectures : 0;
+    totalCompleted += completed;
+  });
+
+  return totalLectures === 0 ? 0 : Math.round((totalCompleted / totalLectures) * 100);
+}
+
+export function getPrayasLectureCounts(subject: string, state?: AppState): { completed: number; total: number } {
+  const currentState = state || store.getState();
+  const chapters = PRAYAS_SYLLABUS.filter((ch) => ch.subject === subject);
+
+  let completed = 0;
+  let total = 0;
+  chapters.forEach((ch) => {
+    total += ch.totalLectures;
+    if (currentState.prayasLectures && currentState.prayasLectures[ch.id]) {
+      completed += ch.totalLectures;
+    }
+  });
+
+  return { completed, total };
 }

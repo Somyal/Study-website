@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { store, getLocalDateString, FUTURE_DATES } from '../store';
-import { calcUserLevel, getWeakChapters, calcOverallPct } from '../utils/calculations';
+import { calcUserLevel, getWeakChapters, calcOverallPct, calcPrayasSubjectPct } from '../utils/calculations';
 import { BADGE_DEFINITIONS } from '../data/badges';
-import { BookOpen, Flame, Trophy, Target, Clock, Plus, Zap, AlertTriangle } from 'lucide-react';
+import { BookOpen, Flame, Trophy, Target, Clock, Plus, Zap, AlertTriangle, Atom, FlaskConical, Calculator, Beaker, Microscope } from 'lucide-react';
 import { motion } from 'motion/react';
 import { TiltCard } from './TiltCard';
+import { PRAYAS_SUBJECTS } from '../data/prayasSyllabusData';
 
 interface DashboardViewProps {
   onShowToast: (msg: string, type?: string) => void;
@@ -145,6 +146,40 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onShowToast, onOpe
             </div>
           </TiltCard>
         </motion.div>
+      </div>
+
+      {/* Prayas 2.0 Lecture Progress */}
+      <div className="bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <BookOpen className="w-4 h-4 text-[var(--gold)]" />
+          <h3 className="text-sm font-extrabold text-[var(--tp)]">Prayas 2.0 Lecture Progress</h3>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+          {PRAYAS_SUBJECTS.map((subj) => {
+            const pct = calcPrayasSubjectPct(subj, state);
+            let icon = <Atom className="w-3.5 h-3.5" />;
+            if (subj === 'Physical Chemistry') icon = <FlaskConical className="w-3.5 h-3.5" />;
+            if (subj === 'Inorganic Chemistry') icon = <Beaker className="w-3.5 h-3.5" />;
+            if (subj === 'Organic Chemistry') icon = <Microscope className="w-3.5 h-3.5" />;
+            if (subj === 'Mathematics') icon = <Calculator className="w-3.5 h-3.5" />;
+
+            return (
+              <div key={subj} className="bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl p-3">
+                <div className="flex items-center gap-1.5 mb-2 text-[var(--gold)]">
+                  {icon}
+                  <span className="text-[10px] font-bold uppercase tracking-wider truncate">{subj}</span>
+                </div>
+                <div className="font-mono font-black text-lg text-[var(--tp)]">{pct}%</div>
+                <div className="w-full h-1.5 bg-[var(--bg-c3)] rounded-full overflow-hidden mt-2">
+                  <div
+                    className="h-full bg-[var(--gold)] rounded-full transition-all duration-500"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Exam Countdown Row */}

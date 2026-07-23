@@ -3,6 +3,8 @@ import { store, getLocalDateString } from '../store';
 import { MockTest } from '../types';
 import { Chart, registerables } from 'chart.js';
 import { BarChart2, Plus, LineChart, PieChart, Trash2, Calendar, FileText, Atom, FlaskConical, Calculator } from 'lucide-react';
+import { PRAYAS_TEST_SCHEDULE, ScheduledTest } from '../data/prayasTestPlannerData';
+import { TestEntryModal } from './TestEntryModal';
 
 Chart.register(...registerables);
 
@@ -10,10 +12,15 @@ interface MockTestsViewProps {
   onShowToast: (msg: string, type?: string, onUndo?: () => void) => void;
 }
 
+type MockTestTab = 'scheduled' | 'analytics';
+
 export const MockTestsView: React.FC<MockTestsViewProps> = ({ onShowToast }) => {
   const [state, setState] = useState(store.getState());
+  const [activeTab, setActiveTab] = useState<MockTestTab>('scheduled');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedScheduledTest, setSelectedScheduledTest] = useState<ScheduledTest | null>(null);
 
-  // Form State
+  // Legacy form state
   const [testName, setTestName] = useState('');
   const [testDate, setTestDate] = useState(getLocalDateString());
   const [phScore, setPhScore] = useState<number | ''>('');
@@ -22,8 +29,6 @@ export const MockTestsView: React.FC<MockTestsViewProps> = ({ onShowToast }) => 
   const [attempted, setAttempted] = useState<number | ''>('');
   const [incorrect, setIncorrect] = useState<number | ''>('');
   const [notes, setNotes] = useState('');
-
-  // Error Breakdown State
   const [errCalc, setErrCalc] = useState<number | ''>('');
   const [errConcept, setErrConcept] = useState<number | ''>('');
   const [errMisread, setErrMisread] = useState<number | ''>('');
@@ -72,7 +77,6 @@ export const MockTestsView: React.FC<MockTestsViewProps> = ({ onShowToast }) => 
     store.addMockTest(newTest);
     onShowToast(`Logged test score: ${autoTotal}/300! +200 XP`, 'emerald');
 
-    // Reset Form
     setTestName('');
     setPhScore('');
     setChScore('');
@@ -86,15 +90,15 @@ export const MockTestsView: React.FC<MockTestsViewProps> = ({ onShowToast }) => 
     setErrTime('');
   };
 
-  // Render/Update Charts
+  // Render/Update Charts (Analytics tab only)
   useEffect(() => {
+    if (activeTab !== 'analytics') return;
     const tests = [...state.tests].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     const isLight = document.documentElement.classList.contains('light');
     const tickColor = isLight ? '#64748b' : '#a1a1aa';
     const gridColor = isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)';
 
-    // Trend Chart
     if (trendChartRef.current) {
       if (trendChartInstance.current) {
         trendChartInstance.current.data.labels = tests.map((t) => t.name || t.date);
@@ -139,7 +143,6 @@ export const MockTestsView: React.FC<MockTestsViewProps> = ({ onShowToast }) => 
       }
     }
 
-    // Subject Radar Chart
     if (radarChartRef.current) {
       const avgPh = tests.length ? Math.round(tests.reduce((acc, t) => acc + (t.ph || 0), 0) / tests.length) : 0;
       const avgCh = tests.length ? Math.round(tests.reduce((acc, t) => acc + (t.ch || 0), 0) / tests.length) : 0;
@@ -189,13 +192,17 @@ export const MockTestsView: React.FC<MockTestsViewProps> = ({ onShowToast }) => 
         radarChartInstance.current = null;
       }
     };
-  }, [state.tests, state.settings.tt]);
+  }, [state.tests, state.settings.tt, activeTab]);
 
   const avg = (arr: number[]) => (arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0);
   const avgPh = avg(state.tests.map((t) => t.ph || 0));
   const avgCh = avg(state.tests.map((t) => t.ch || 0));
   const avgMa = avg(state.tests.map((t) => t.ma || 0));
   const avgTotal = avg(state.tests.map((t) => t.to || 0));
+
+  const getScheduledTestResult = (scheduledId: string): MockTest | undefined => {
+    return state.tests.find((t) => t.scheduledTestId === scheduledId);
+  };
 
   return (
     <div className="space-y-6">
@@ -205,248 +212,365 @@ export const MockTestsView: React.FC<MockTestsViewProps> = ({ onShowToast }) => 
         </h2>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Form Container */}
-        <form onSubmit={handleAddTest} className="bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl p-5 space-y-4">
-          <h3 className="text-sm font-extrabold text-[var(--tp)] flex items-center gap-2">
-            <Plus className="w-4 h-4 text-[var(--gold)]" /> Log Mock Test Result
-          </h3>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setActiveTab('scheduled')}
+          className={`px-4 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'scheduled'
+              ? 'bg-[var(--gold-muted)] text-[var(--gold)] border-[var(--gold-border)]'
+              : 'bg-[var(--bg-c)] text-[var(--ts)] border-[var(--b)] hover:border-[var(--bh)]'
+          }`}
+        >
+          Scheduled Prayas Tests
+        </button>
+        <button
+          onClick={() => setActiveTab('analytics')}
+          className={`px-4 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'analytics'
+              ? 'bg-[var(--gold-muted)] text-[var(--gold)] border-[var(--gold-border)]'
+              : 'bg-[var(--bg-c)] text-[var(--ts)] border-[var(--b)] hover:border-[var(--bh)]'
+          }`}
+        >
+          Test Analytics History
+        </button>
+      </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-[var(--ts)] mb-1">Test Name / Series</label>
-            <input
-              type="text"
-              required
-              value={testName}
-              onChange={(e) => setTestName(e.target.value)}
-              placeholder="e.g. Allen Minor 04 or MathonGo FT-1"
-              className="w-full bg-[var(--bg-c2)] border border-[var(--b)] focus:border-[var(--gold)] rounded-xl px-3 py-2 text-xs text-[var(--tp)] outline-none"
-            />
-          </div>
+      {activeTab === 'scheduled' && (
+        <div className="space-y-4">
+          {PRAYAS_TEST_SCHEDULE.map((test) => {
+            const attempted = store.isPrayasTestAttempted(test.id);
+            const result = getScheduledTestResult(test.id);
+            return (
+              <div
+                key={test.id}
+                className={`bg-[var(--bg-c)] border rounded-2xl p-5 transition-all ${
+                  attempted ? 'border-[var(--gold-border)]' : 'border-[var(--b)]'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-extrabold text-base text-[var(--tp)]">{test.name}</h3>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                        test.testType === 'Full Test'
+                          ? 'bg-[rgba(184,84,80,0.12)] text-[var(--error)] border-[rgba(184,84,80,0.25)]'
+                          : 'bg-[var(--gold-muted)] text-[var(--gold)] border-[var(--gold-border)]'
+                      }`}>
+                        {test.testType}
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-[var(--bg-c2)] text-[var(--info)] border-[var(--b)]">
+                        {test.pattern}
+                      </span>
+                      {attempted && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-[var(--success)] text-white border-[var(--success)]">
+                          Attempted
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-[var(--tm)] flex items-center gap-3">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" /> {test.date}
+                      </span>
+                      {attempted && result && (
+                        <span className="font-mono font-black text-[var(--gold)]">
+                          Score: {result.to}/360
+                        </span>
+                      )}
+                    </div>
+                  </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-[var(--ts)] mb-1 flex items-center gap-1">
-              <Calendar className="w-3 h-3 text-[var(--tm)]" /> Date Taken
-            </label>
-            <input
-              type="date"
-              value={testDate}
-              onChange={(e) => setTestDate(e.target.value)}
-              className="w-full bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl px-3 py-2 text-xs text-[var(--tp)] outline-none"
-            />
-          </div>
+                  {!attempted ? (
+                    <button
+                      onClick={() => {
+                        setSelectedScheduledTest(test);
+                        setIsModalOpen(true);
+                      }}
+                      className="px-4 py-2 bg-[var(--gold)] text-[var(--bg)] text-xs font-bold rounded-xl hover:bg-[var(--gold-hover)] transition-all cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Mark Attempted
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setSelectedScheduledTest(test);
+                        setIsModalOpen(true);
+                      }}
+                      className="px-4 py-2 bg-[var(--bg-c2)] border border-[var(--b)] text-[var(--tp)] text-xs font-bold rounded-xl hover:border-[var(--bh)] transition-all cursor-pointer"
+                    >
+                      Edit Result
+                    </button>
+                  )}
+                </div>
 
-          {/* Subject Scores Grid */}
-          <div className="grid grid-cols-3 gap-3">
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl p-3">
+                    <div className="text-[10px] font-bold text-[var(--info)] uppercase mb-1">Physics</div>
+                    <div className="text-xs text-[var(--ts)]">{test.syllabus.physics}</div>
+                  </div>
+                  <div className="bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl p-3">
+                    <div className="text-[10px] font-bold text-[var(--success)] uppercase mb-1">Chemistry</div>
+                    <div className="text-xs text-[var(--ts)]">{test.syllabus.chemistry}</div>
+                  </div>
+                  <div className="bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl p-3">
+                    <div className="text-[10px] font-bold text-[var(--gold)] uppercase mb-1">Mathematics</div>
+                    <div className="text-xs text-[var(--ts)]">{test.syllabus.maths}</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {activeTab === 'analytics' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Form Container */}
+          <form onSubmit={handleAddTest} className="bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl p-5 space-y-4">
+            <h3 className="text-sm font-extrabold text-[var(--tp)] flex items-center gap-2">
+              <Plus className="w-4 h-4 text-[var(--gold)]" /> Log Mock Test Result
+            </h3>
+
             <div>
-              <label className="block text-[11px] font-bold text-[var(--info)] mb-1 flex items-center gap-1">
-                <Atom className="w-3 h-3" /> Physics (/100)
+              <label className="block text-xs font-semibold text-[var(--ts)] mb-1">Test Name / Series</label>
+              <input
+                type="text"
+                required
+                value={testName}
+                onChange={(e) => setTestName(e.target.value)}
+                placeholder="e.g. Allen Minor 04 or MathonGo FT-1"
+                className="w-full bg-[var(--bg-c2)] border border-[var(--b)] focus:border-[var(--gold)] rounded-xl px-3 py-2 text-xs text-[var(--tp)] outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-[var(--ts)] mb-1 flex items-center gap-1">
+                <Calendar className="w-3 h-3 text-[var(--tm)]" /> Date Taken
               </label>
               <input
-                type="number"
-                min="0"
-                max="100"
-                value={phScore}
-                onChange={(e) => setPhScore(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
-                placeholder="0"
-                className="w-full bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl px-2.5 py-1.5 text-xs text-[var(--tp)] font-mono outline-none"
+                type="date"
+                value={testDate}
+                onChange={(e) => setTestDate(e.target.value)}
+                className="w-full bg-[var(--bg-c2)] border border-[var(--b)] px-3 py-2 text-xs text-[var(--tp)] outline-none"
               />
             </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-[11px] font-bold text-[var(--info)] mb-1 flex items-center gap-1">
+                  <Atom className="w-3 h-3" /> Physics (/100)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={phScore}
+                  onChange={(e) => setPhScore(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
+                  placeholder="0"
+                  className="w-full bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl px-2.5 py-1.5 text-xs text-[var(--tp)] font-mono outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-[var(--success)] mb-1 flex items-center gap-1">
+                  <FlaskConical className="w-3 h-3" /> Chemistry (/100)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={chScore}
+                  onChange={(e) => setChScore(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
+                  placeholder="0"
+                  className="w-full bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl px-2.5 py-1.5 text-xs text-[var(--tp)] font-mono outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-[var(--gold)] mb-1 flex items-center gap-1">
+                  <Calculator className="w-3 h-3" /> Math (/100)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={maScore}
+                  onChange={(e) => setMaScore(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
+                  placeholder="0"
+                  className="w-full bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl px-2.5 py-1.5 text-xs text-[var(--tp)] font-mono outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl p-3 flex items-center justify-between">
+              <span className="text-xs font-bold text-[var(--ts)]">Calculated Total Score</span>
+              <span className="font-mono text-base font-black text-[var(--gold)]">{autoTotal} / 300</span>
+            </div>
+
+            <div className="space-y-2 pt-2 border-t border-[var(--b)]">
+              <label className="block text-xs font-bold text-[var(--ts)]">Error Diagnostics Breakdown (Optional)</label>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <input
+                  type="number"
+                  min="0"
+                  value={errCalc}
+                  onChange={(e) => setErrCalc(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
+                  placeholder="Calculation Errors"
+                  className="bg-[var(--bg-c2)] border border-[var(--b)] rounded-lg px-2.5 py-1 text-[11px] text-[var(--tp)] outline-none"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  value={errConcept}
+                  onChange={(e) => setErrConcept(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
+                  placeholder="Conceptual Errors"
+                  className="bg-[var(--bg-c2)] border border-[var(--b)] rounded-lg px-2.5 py-1 text-[11px] text-[var(--tp)] outline-none"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  value={errMisread}
+                  onChange={(e) => setErrMisread(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
+                  placeholder="Misread Questions"
+                  className="bg-[var(--bg-c2)] border border-[var(--b)] rounded-lg px-2.5 py-1 text-[11px] text-[var(--tp)] outline-none"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  value={errTime}
+                  onChange={(e) => setErrTime(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
+                  placeholder="Time Pressure Errors"
+                  className="bg-[var(--bg-c2)] border border-[var(--b)] rounded-lg px-2.5 py-1 text-[11px] text-[var(--tp)] outline-none"
+                />
+              </div>
+            </div>
+
             <div>
-              <label className="block text-[11px] font-bold text-[var(--success)] mb-1 flex items-center gap-1">
-                <FlaskConical className="w-3 h-3" /> Chemistry (/100)
+              <label className="block text-xs font-semibold text-[var(--ts)] mb-1 flex items-center gap-1">
+                <FileText className="w-3 h-3 text-[var(--tm)]" /> Notes & Strategy Remarks
               </label>
               <input
-                type="number"
-                min="0"
-                max="100"
-                value={chScore}
-                onChange={(e) => setChScore(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
-                placeholder="0"
-                className="w-full bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl px-2.5 py-1.5 text-xs text-[var(--tp)] font-mono outline-none"
+                type="text"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="e.g. Silly mistake in Integration, time management was good"
+                className="w-full bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl px-3 py-2 text-xs text-[var(--tp)] outline-none"
               />
             </div>
-            <div>
-              <label className="block text-[11px] font-bold text-[var(--gold)] mb-1 flex items-center gap-1">
-                <Calculator className="w-3 h-3" /> Math (/100)
-              </label>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                value={maScore}
-                onChange={(e) => setMaScore(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
-                placeholder="0"
-                className="w-full bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl px-2.5 py-1.5 text-xs text-[var(--tp)] font-mono outline-none"
-              />
-            </div>
-          </div>
 
-          {/* Auto Total */}
-          <div className="bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl p-3 flex items-center justify-between">
-            <span className="text-xs font-bold text-[var(--ts)]">Calculated Total Score</span>
-            <span className="font-mono text-base font-black text-[var(--gold)]">{autoTotal} / 300</span>
-          </div>
+            <button
+              type="submit"
+              className="w-full py-2.5 bg-[var(--gold)] text-[var(--bg)] font-bold text-xs rounded-xl hover:bg-[var(--gold-hover)] transition-all cursor-pointer"
+            >
+              Log Test Result (+200 XP)
+            </button>
+          </form>
 
-          {/* Diagnostic Mistakes Breakdown */}
-          <div className="space-y-2 pt-2 border-t border-[var(--b)]">
-            <label className="block text-xs font-bold text-[var(--ts)]">Error Diagnostics Breakdown (Optional)</label>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <input
-                type="number"
-                min="0"
-                value={errCalc}
-                onChange={(e) => setErrCalc(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
-                placeholder="Calculation Errors"
-                className="bg-[var(--bg-c2)] border border-[var(--b)] rounded-lg px-2.5 py-1 text-[11px] text-[var(--tp)] outline-none"
-              />
-              <input
-                type="number"
-                min="0"
-                value={errConcept}
-                onChange={(e) => setErrConcept(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
-                placeholder="Conceptual Errors"
-                className="bg-[var(--bg-c2)] border border-[var(--b)] rounded-lg px-2.5 py-1 text-[11px] text-[var(--tp)] outline-none"
-              />
-              <input
-                type="number"
-                min="0"
-                value={errMisread}
-                onChange={(e) => setErrMisread(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
-                placeholder="Misread Questions"
-                className="bg-[var(--bg-c2)] border border-[var(--b)] rounded-lg px-2.5 py-1 text-[11px] text-[var(--tp)] outline-none"
-              />
-              <input
-                type="number"
-                min="0"
-                value={errTime}
-                onChange={(e) => setErrTime(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
-                placeholder="Time Pressure Errors"
-                className="bg-[var(--bg-c2)] border border-[var(--b)] rounded-lg px-2.5 py-1 text-[11px] text-[var(--tp)] outline-none"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-[var(--ts)] mb-1 flex items-center gap-1">
-              <FileText className="w-3 h-3 text-[var(--tm)]" /> Notes & Strategy Remarks
-            </label>
-            <input
-              type="text"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="e.g. Silly mistake in Integration, time management was good"
-              className="w-full bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl px-3 py-2 text-xs text-[var(--tp)] outline-none"
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="w-full py-2.5 bg-[var(--gold)] text-[var(--bg)] font-bold text-xs rounded-xl hover:bg-[var(--gold-hover)] transition-all cursor-pointer"
-          >
-            Log Test Result (+200 XP)
-          </button>
-        </form>
-
-        {/* Charts & Summary Container */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Summary Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-[var(--bg-c)] border border-[var(--b)] rounded-xl p-3 text-center">
-              <div className="text-[10px] font-bold text-[var(--tm)]">AVG TOTAL</div>
-              <div className="font-mono font-black text-lg text-[var(--gold)]">{avgTotal}/300</div>
-            </div>
-            <div className="bg-[var(--bg-c)] border border-[var(--b)] rounded-xl p-3 text-center">
-              <div className="text-[10px] font-bold text-[var(--info)]">PHYSICS AVG</div>
-              <div className="font-mono font-black text-lg text-[var(--tp)]">{avgPh}/100</div>
-            </div>
-            <div className="bg-[var(--bg-c)] border border-[var(--b)] rounded-xl p-3 text-center">
-              <div className="text-[10px] font-bold text-[var(--success)]">CHEMISTRY AVG</div>
-              <div className="font-mono font-black text-lg text-[var(--tp)]">{avgCh}/100</div>
-            </div>
-            <div className="bg-[var(--bg-c)] border border-[var(--b)] rounded-xl p-3 text-center">
-              <div className="text-[10px] font-bold text-[var(--warning)]">MATH AVG</div>
-              <div className="font-mono font-black text-lg text-[var(--tp)]">{avgMa}/100</div>
-            </div>
-          </div>
-
-          {/* Charts Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl p-4 space-y-2">
-              <div className="text-xs font-bold text-[var(--tp)] flex items-center gap-1.5">
-                <LineChart className="w-4 h-4 text-[var(--gold)]" /> Total Score Trend
+          {/* Charts & Summary Container */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-[var(--bg-c)] border border-[var(--b)] rounded-xl p-3 text-center">
+                <div className="text-[10px] font-bold text-[var(--tm)]">AVG TOTAL</div>
+                <div className="font-mono font-black text-lg text-[var(--gold)]">{avgTotal}/300</div>
               </div>
-              <div className="h-[220px]">
-                <canvas ref={trendChartRef} />
+              <div className="bg-[var(--bg-c)] border border-[var(--b)] rounded-xl p-3 text-center">
+                <div className="text-[10px] font-bold text-[var(--info)]">PHYSICS AVG</div>
+                <div className="font-mono font-black text-lg text-[var(--tp)]">{avgPh}/100</div>
+              </div>
+              <div className="bg-[var(--bg-c)] border border-[var(--b)] rounded-xl p-3 text-center">
+                <div className="text-[10px] font-bold text-[var(--success)]">CHEMISTRY AVG</div>
+                <div className="font-mono font-black text-lg text-[var(--tp)]">{avgCh}/100</div>
+              </div>
+              <div className="bg-[var(--bg-c)] border border-[var(--b)] rounded-xl p-3 text-center">
+                <div className="text-[10px] font-bold text-[var(--warning)]">MATH AVG</div>
+                <div className="font-mono font-black text-lg text-[var(--tp)]">{avgMa}/100</div>
               </div>
             </div>
 
-            <div className="bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl p-4 space-y-2">
-              <div className="text-xs font-bold text-[var(--tp)] flex items-center gap-1.5">
-                <PieChart className="w-4 h-4 text-[var(--gold)]" /> Subject Accuracy Radar
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl p-4 space-y-2">
+                <div className="text-xs font-bold text-[var(--tp)] flex items-center gap-1.5">
+                  <LineChart className="w-4 h-4 text-[var(--gold)]" /> Total Score Trend
+                </div>
+                <div className="h-[220px]">
+                  <canvas ref={trendChartRef} />
+                </div>
               </div>
-              <div className="h-[220px]">
-                <canvas ref={radarChartRef} />
+
+              <div className="bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl p-4 space-y-2">
+                <div className="text-xs font-bold text-[var(--tp)] flex items-center gap-1.5">
+                  <PieChart className="w-4 h-4 text-[var(--gold)]" /> Subject Accuracy Radar
+                </div>
+                <div className="h-[220px]">
+                  <canvas ref={radarChartRef} />
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* History Table */}
-          <div className="bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl p-4 space-y-3">
-            <h4 className="text-xs font-bold text-[var(--tp)]">Test History ({state.tests.length})</h4>
+            <div className="bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl p-4 space-y-3">
+              <h4 className="text-xs font-bold text-[var(--tp)]">Test History ({state.tests.length})</h4>
 
-            {state.tests.length === 0 ? (
-              <div className="text-center text-xs text-[var(--tm)] py-6">No test logs recorded yet.</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs font-mono">
-                  <thead>
-                    <tr className="border-b border-[var(--b)] text-[var(--tm)] font-sans text-[11px]">
-                      <th className="pb-2 font-bold">Test Name</th>
-                      <th className="pb-2 font-bold">Date</th>
-                      <th className="pb-2 font-bold text-[var(--info)]">Ph</th>
-                      <th className="pb-2 font-bold text-[var(--success)]">Ch</th>
-                      <th className="pb-2 font-bold text-[var(--warning)]">Ma</th>
-                      <th className="pb-2 font-bold text-[var(--tp)]">Total</th>
-                      <th className="pb-2 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[var(--b)]">
-                    {state.tests.map((t) => (
-                      <tr key={t.id} className="hover:bg-[var(--bg-c2)]">
-                        <td className="py-2.5 font-sans font-semibold text-[var(--tp)]">{t.name}</td>
-                        <td className="py-2.5 text-[var(--tm)]">{t.date}</td>
-                        <td className="py-2.5 text-[var(--info)] font-bold">{t.ph}</td>
-                        <td className="py-2.5 text-[var(--success)] font-bold">{t.ch}</td>
-                        <td className="py-2.5 text-[var(--warning)] font-bold">{t.ma}</td>
-                        <td className="py-2.5 font-black text-[var(--gold)]">{t.to}/300</td>
-                        <td className="py-2.5 text-right">
-                          <button
-                            onClick={() => {
-                              const deleted = state.tests.find((x) => x.id === t.id) || null;
-                              lastDeletedRef.current = deleted;
-                              store.deleteMockTest(t.id);
-                              onShowToast('Test log deleted', 'amber', () => {
-                                if (lastDeletedRef.current) {
-                                  store.addMockTest(lastDeletedRef.current, false);
-                                  lastDeletedRef.current = null;
-                                }
-                              });
-                            }}
-                            className="text-[var(--error)] hover:text-[var(--error)] p-1 cursor-pointer"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </td>
+              {state.tests.length === 0 ? (
+                <div className="text-center text-xs text-[var(--tm)] py-6">No test logs recorded yet.</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs font-mono">
+                    <thead>
+                      <tr className="border-b border-[var(--b)] text-[var(--tm)] font-sans text-[11px]">
+                        <th className="pb-2 font-bold">Test Name</th>
+                        <th className="pb-2 font-bold">Date</th>
+                        <th className="pb-2 font-bold text-[var(--info)]">Ph</th>
+                        <th className="pb-2 font-bold text-[var(--success)]">Ch</th>
+                        <th className="pb-2 font-bold text-[var(--warning)]">Ma</th>
+                        <th className="pb-2 font-bold text-[var(--tp)]">Total</th>
+                        <th className="pb-2 text-right">Action</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                    </thead>
+                    <tbody className="divide-y divide-[var(--b)]">
+                      {state.tests.map((t) => (
+                        <tr key={t.id} className="hover:bg-[var(--bg-c2)]">
+                          <td className="py-2.5 font-sans font-semibold text-[var(--tp)]">{t.name}</td>
+                          <td className="py-2.5 text-[var(--tm)]">{t.date}</td>
+                          <td className="py-2.5 text-[var(--info)] font-bold">{t.ph}</td>
+                          <td className="py-2.5 text-[var(--success)] font-bold">{t.ch}</td>
+                          <td className="py-2.5 text-[var(--warning)] font-bold">{t.ma}</td>
+                          <td className="py-2.5 font-black text-[var(--gold)]">{t.to}/300</td>
+                          <td className="py-2.5 text-right">
+                            <button
+                              onClick={() => {
+                                const deleted = state.tests.find((x) => x.id === t.id) || null;
+                                lastDeletedRef.current = deleted;
+                                store.deleteMockTest(t.id);
+                                onShowToast('Test log deleted', 'amber', () => {
+                                  if (lastDeletedRef.current) {
+                                    store.addMockTest(lastDeletedRef.current, false);
+                                    lastDeletedRef.current = null;
+                                  }
+                                });
+                              }}
+                              className="text-[var(--error)] hover:text-[var(--error)] p-1 cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {isModalOpen && selectedScheduledTest && (
+        <TestEntryModal
+          test={selectedScheduledTest}
+          onClose={() => {
+            setIsModalOpen(false);
+            setSelectedScheduledTest(null);
+          }}
+          onShowToast={onShowToast}
+        />
+      )}
     </div>
   );
 };
