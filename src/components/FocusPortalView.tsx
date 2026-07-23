@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
 import { store, getLocalDateString } from '../store';
+import { isValidStudyUrl, normaliseUrl } from '../utils/urlValidation';
 import { Rocket, Pause, Play, Square, ExternalLink, Maximize2, Minimize2, Coffee, Target, Sparkles, Check, Monitor } from 'lucide-react';
+import { FocusParticleVisualizer } from './FocusParticleVisualizer';
 
 interface FocusPortalViewProps {
   onShowToast: (msg: string, type?: string) => void;
@@ -34,6 +36,7 @@ export const FocusPortalView: React.FC<FocusPortalViewProps> = ({ onShowToast })
   const [isPaused, setIsPaused] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [subjectLabel, setSubjectLabel] = useState('General');
+  const [displayMs, setDisplayMs] = useState(0);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [pendingHours, setPendingHours] = useState(0);
@@ -41,6 +44,7 @@ export const FocusPortalView: React.FC<FocusPortalViewProps> = ({ onShowToast })
   const [ratio, setRatio] = useState<'practice' | 'lecture' | 'balanced'>('practice');
   const [notes, setNotes] = useState('');
   const [pipAvailable, setPipAvailable] = useState(false);
+  const [isPipOpen, setIsPipOpen] = useState(false);
 
   const timerRef = useRef<number | null>(null);
   const startTimeRef = useRef<number | null>(null);
@@ -64,16 +68,40 @@ export const FocusPortalView: React.FC<FocusPortalViewProps> = ({ onShowToast })
     }
   }, []);
 
+  const startMasterTimer = useCallback(() => {
+    clearTimer();
+    timerRef.current = window.setInterval(() => {
+      if (!startTimeRef.current) return;
+      const ms = accumulatedRef.current + (Date.now() - startTimeRef.current);
+      elapsedMsRef.current = ms;
+      setDisplayMs(ms);
+      if (timerDisplayRef.current) {
+        timerDisplayRef.current.textContent = formatTimer(ms);
+      }
+    }, 250);
+  }, [clearTimer]);
+
+  const closePipWindow = useCallback(() => {
+    clearTimer();
+    if (pipWindowRef.current && !pipWindowRef.current.closed) {
+      pipWindowRef.current.close();
+    }
+    pipWindowRef.current = null;
+    timerDisplayRef.current = null;
+    breakDisplayRef.current = null;
+    setIsPipOpen(false);
+  }, [clearTimer]);
+
   // notify extension of focus status
   const notifyExtension = useCallback((active: boolean) => {
     try {
       const extId = 'jee-focus-shield';
-      const c = (window as any).chrome;
-      if (c && c.runtime && c.runtime.sendMessage) {
-        c.runtime.sendMessage(extId, { type: 'FOCUS_STATUS', active });
+      const c = window as any;
+      if (c.chrome && c.chrome.runtime && c.chrome.runtime.sendMessage) {
+        c.chrome.runtime.sendMessage(extId, { type: 'FOCUS_STATUS', active });
       }
-      if (c && c.storage && c.storage.local) {
-        c.storage.local.set({ focusActive: active });
+      if (c.chrome && c.chrome.storage && c.chrome.storage.local) {
+        c.chrome.storage.local.set({ focusActive: active });
       }
     } catch {
       // extension not installed or context unavailable
@@ -166,7 +194,7 @@ export const FocusPortalView: React.FC<FocusPortalViewProps> = ({ onShowToast })
           const ms = accumulatedRef.current + (Date.now() - startTimeRef.current);
           elapsedMsRef.current = ms;
           if (timerDisplayRef.current) timerDisplayRef.current.textContent = formatTimer(ms);
-        }, 1000);
+        }, 250);
       };
 
       const startBreakTicker = () => {
@@ -176,7 +204,7 @@ export const FocusPortalView: React.FC<FocusPortalViewProps> = ({ onShowToast })
           const ms = Date.now() - breakStartRef.current;
           breakMsRef.current = ms;
           if (breakDisplayRef.current) breakDisplayRef.current.textContent = formatBreak(ms);
-        }, 1000);
+        }, 250);
       };
 
       pipWin.document.getElementById('btnEnd')?.addEventListener('click', () => {
@@ -196,7 +224,8 @@ export const FocusPortalView: React.FC<FocusPortalViewProps> = ({ onShowToast })
         breakMsRef.current = 0;
         setIsPaused(true);
         if (timerDisplayRef.current) timerDisplayRef.current.textContent = formatTimer(elapsedMsRef.current);
-        const br = document.getElementById('breakRow');
+        setDisplayMs(elapsedMsRef.current);
+        const br = pipWin.document.getElementById('breakRow');
         if (br) br.style.display = 'flex';
         if (breakDisplayRef.current) breakDisplayRef.current.textContent = '00:00';
         if (btnPause) btnPause.style.display = 'none';
@@ -214,7 +243,7 @@ export const FocusPortalView: React.FC<FocusPortalViewProps> = ({ onShowToast })
         if (timerDisplayRef.current) timerDisplayRef.current.textContent = formatTimer(elapsedMsRef.current);
         if (btnPause) btnPause.style.display = 'inline-block';
         if (btnResume) btnResume.style.display = 'none';
-        const br = document.getElementById('breakRow');
+        const br = pipWin.document.getElementById('breakRow');
         if (br) br.style.display = 'none';
         startActiveTicker();
         onShowToast('Session resumed', 'emerald');
@@ -222,18 +251,35 @@ export const FocusPortalView: React.FC<FocusPortalViewProps> = ({ onShowToast })
 
       pipWin.addEventListener('pagehide', () => {
         pipWindowRef.current = null;
-        // keep session active in main app; user can end from main UI
+        timerDisplayRef.current = null;
+        breakDisplayRef.current = null;
+        setIsPipOpen(false);
         onShowToast('Floating timer closed. Use main window to manage session.', 'amber');
       });
 
+      setIsPipOpen(true);
       startActiveTicker();
     } catch (err) {
       onShowToast('Document PiP failed: ' + (err as Error).message, 'rose');
     }
   }, [clearTimer, injectPipTheme, notifyExtension, onShowToast, subjectLabel]);
 
+  const handleTogglePip = useCallback(async () => {
+    if (isPipOpen) {
+      closePipWindow();
+    } else {
+      await openPipWindow();
+    }
+  }, [isPipOpen, closePipWindow, openPipWindow]);
+
   useEffect(() => {
-    return () => clearTimer();
+    return () => {
+      clearTimer();
+      if (pipWindowRef.current && !pipWindowRef.current.closed) {
+        pipWindowRef.current.close();
+      }
+      pipWindowRef.current = null;
+    };
   }, [clearTimer]);
 
   useEffect(() => {
@@ -254,13 +300,26 @@ export const FocusPortalView: React.FC<FocusPortalViewProps> = ({ onShowToast })
     };
   }, []);
 
-  const handleLaunch = async () => {
+  const handleLaunch = () => {
+    const trimmed = urlInput.trim();
+    if (!isValidStudyUrl(trimmed)) {
+      onShowToast('Please enter a valid platform URL (e.g. https://www.youtube.com/watch?v=...)', 'rose');
+      return;
+    }
+
+    const normalisedUrl = normaliseUrl(trimmed);
     store.updateState((draft) => {
-      draft.focusUrl = urlInput;
+      draft.focusUrl = normalisedUrl;
     });
+
+    const newTab = window.open(normalisedUrl, '_blank', 'noopener,noreferrer');
+    if (!newTab) {
+      onShowToast('Popup blocked — please allow popups for this site and try again.', 'amber');
+    }
 
     setIsSessionActive(true);
     setIsPaused(false);
+    setDisplayMs(0);
     startTimeRef.current = Date.now();
     accumulatedRef.current = 0;
     breakStartRef.current = null;
@@ -269,19 +328,9 @@ export const FocusPortalView: React.FC<FocusPortalViewProps> = ({ onShowToast })
 
     notifyExtension(true);
 
-    clearTimer();
-    timerRef.current = window.setInterval(() => {
-      if (!startTimeRef.current) return;
-      const ms = accumulatedRef.current + (Date.now() - startTimeRef.current);
-      elapsedMsRef.current = ms;
-    }, 1000);
+    startMasterTimer();
 
-    onShowToast('Focus session launched!', 'violet');
-    if (pipAvailable) {
-      await openPipWindow();
-    } else {
-      onShowToast('Pop-out timer not supported. Use the in-app timer below.', 'amber');
-    }
+    onShowToast('Study tab opened. Focus session active.', 'violet');
   };
 
   const handleTogglePause = () => {
@@ -295,20 +344,16 @@ export const FocusPortalView: React.FC<FocusPortalViewProps> = ({ onShowToast })
       breakStartRef.current = Date.now();
       breakMsRef.current = 0;
       setIsPaused(true);
+      setDisplayMs(elapsedMsRef.current);
       onShowToast('Session paused — break timer active', 'amber');
     } else {
       clearTimer();
-      startTimeRef.current = Date.now();
       breakStartRef.current = null;
       breakMsRef.current = 0;
       setIsPaused(false);
-      timerRef.current = window.setInterval(() => {
-        if (!startTimeRef.current) return;
-        const ms = accumulatedRef.current + (Date.now() - startTimeRef.current);
-        elapsedMsRef.current = ms;
-        const el = document.getElementById('mainTimer');
-        if (el) el.textContent = formatTimer(ms);
-      }, 1000);
+      startTimeRef.current = Date.now();
+      setDisplayMs(elapsedMsRef.current);
+      startMasterTimer();
       onShowToast('Session resumed', 'emerald');
     }
   };
@@ -360,10 +405,12 @@ export const FocusPortalView: React.FC<FocusPortalViewProps> = ({ onShowToast })
     onShowToast(`Session logged: ${hrs}h & +100 XP!`, 'emerald');
 
     clearTimer();
+    closePipWindow();
     startTimeRef.current = null;
     accumulatedRef.current = 0;
     elapsedMsRef.current = 0;
     breakMsRef.current = 0;
+    setDisplayMs(0);
     setIsSessionActive(false);
     setIsPaused(false);
     setIsModalOpen(false);
@@ -410,183 +457,196 @@ export const FocusPortalView: React.FC<FocusPortalViewProps> = ({ onShowToast })
   };
 
   return (
-    <div ref={containerRef} className="space-y-6 bg-[var(--bg)] transition-colors duration-200">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-extrabold text-[var(--tp)] flex items-center gap-2">
-          <Rocket className="w-5 h-5 text-[var(--gold)]" /> Focus Portal
-        </h2>
-        {!isSessionActive && (
-          <div className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[var(--gold-muted)] text-[var(--gold)] border border-[var(--gold-border)]">
-            PiP {pipAvailable ? '✅ Supported' : '❌ Not Supported'}
+    <div ref={containerRef} className="relative space-y-6 bg-[var(--bg)] transition-colors duration-200 overflow-hidden">
+      <FocusParticleVisualizer isActive={isSessionActive} count={180} />
+
+      <div className="relative z-10">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-extrabold text-[var(--tp)] flex items-center gap-2">
+            <Rocket className="w-5 h-5 text-[var(--gold)]" /> Focus Portal
+          </h2>
+          {!isSessionActive && (
+            <div className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[var(--gold-muted)] text-[var(--gold)] border border-[var(--gold-border)]">
+              PiP {pipAvailable ? '✅ Supported' : '❌ Not Supported'}
+            </div>
+          )}
+        </div>
+
+        <div className="bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl p-5 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold text-[var(--ts)]">Study Subject / Topic</label>
+              <input
+                type="text"
+                value={subjectLabel}
+                onChange={(e) => setSubjectLabel(e.target.value)}
+                placeholder="e.g. Physics — Rotational Motion"
+                className="w-full bg-[var(--bg-c2)] border border-[var(--b)] focus:border-[var(--gold)] rounded-xl px-4 py-2.5 text-xs text-[var(--tp)] outline-none"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold text-[var(--ts)]">Study Platform URL</label>
+              <input
+                type="url"
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                placeholder="https://www.youtube.com/watch?v=..."
+                className="w-full bg-[var(--bg-c2)] border border-[var(--b)] focus:border-[var(--gold)] rounded-xl px-4 py-2.5 text-xs text-[var(--tp)] outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={handleLaunch}
+              className="px-5 py-2.5 bg-[var(--gold)] text-[var(--bg)] font-bold text-xs rounded-xl hover:bg-[var(--gold-hover)] transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <Rocket className="w-4 h-4" /> Start Focus Session
+            </button>
+
+            {!isSessionActive && (
+              <>
+                {QUICK_LINKS.map((l) => (
+                  <a
+                    key={l.url}
+                    href={l.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2.5 bg-[var(--bg-c2)] border border-[var(--b)] hover:border-[var(--bh)] text-[var(--tp)] font-bold text-xs rounded-xl transition-all flex items-center gap-1.5"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5 text-[var(--gold)]" /> {l.label}
+                  </a>
+                ))}
+              </>
+            )}
+          </div>
+        </div>
+
+        {isSessionActive && (
+          <div className="bg-[var(--gold-muted)] border border-[var(--gold-border)] rounded-2xl p-4 flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-4">
+              <span
+                className={`w-3 h-3 rounded-full ${
+                  isPaused ? 'bg-[var(--warning)] animate-pulse' : 'bg-[var(--success)] animate-ping'
+                }`}
+              />
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold tracking-wider text-[var(--tm)] uppercase">
+                    {isPaused ? 'SESSION PAUSED' : 'SESSION IN PROGRESS'}
+                  </span>
+                  <span className="pill">{subjectLabel}</span>
+                </div>
+                <div id="mainTimer" className="font-mono text-2xl font-black text-[var(--gold)]">
+                  {formatTimer(displayMs)}
+                </div>
+                {isPaused && (
+                  <div className="flex items-center gap-2">
+                    <Coffee className="w-3.5 h-3.5 text-[var(--warning)]" />
+                    <span className="text-[10px] text-[var(--warning)] font-bold">Break: {formatBreak(breakMsRef.current)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {pipAvailable && (
+                <button
+                  onClick={handleTogglePip}
+                  className="px-4 py-2 bg-[var(--bg-c2)] border border-[var(--b)] text-[var(--tp)] font-bold text-xs rounded-xl hover:border-[var(--bh)] transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  {isPipOpen ? <Minimize2 className="w-4 h-4" /> : <Monitor className="w-4 h-4" />}
+                  {isPipOpen ? 'Dock Floating Timer' : 'Toggle Floating Timer'}
+                </button>
+              )}
+              <button
+                onClick={handleTogglePause}
+                className="px-4 py-2 bg-[var(--gold-muted)] text-[var(--warning)] border border-[var(--gold-border)] hover:bg-[var(--gold-muted)] rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+                {isPaused ? 'Resume' : 'Pause'}
+              </button>
+              <button
+                onClick={handleEndSession}
+                className="px-4 py-2 bg-[rgba(184,84,80,0.15)] text-[var(--error)] border border-[var(--error)] hover:bg-[rgba(184,84,80,0.25)] rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <Square className="w-4 h-4 fill-current" /> End & Save Log
+              </button>
+            </div>
+          </div>
+        )}
+
+        {isModalOpen && (
+          <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+            <form
+              onSubmit={handleSaveModalSession}
+              className="bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl p-6 w-full max-w-md space-y-4"
+            >
+              <h3 className="text-base font-extrabold text-[var(--gold)] flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[var(--gold)]" /> Session Completed!
+              </h3>
+              <p className="text-xs text-[var(--ts)]">Log your session details to update your study tracker and claim XP.</p>
+
+              <div className="bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl p-3 flex items-center justify-between">
+                <span className="text-xs font-semibold text-[var(--ts)]">Active Study Time</span>
+                <span className="font-mono text-base font-extrabold text-[var(--gold)]">{pendingHours} hrs</span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[var(--ts)] mb-1">Questions Solved</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={questions}
+                  onChange={(e) => setQuestions(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
+                  placeholder="0"
+                  className="w-full bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl px-3 py-2 text-xs text-[var(--tp)] font-mono outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[var(--ts)] mb-1">Session Focus</label>
+                <select
+                  value={ratio}
+                  onChange={(e) => setRatio(e.target.value as 'practice' | 'lecture' | 'balanced')}
+                  className="w-full bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl px-3 py-2 text-xs text-[var(--tp)] outline-none"
+                >
+                  <option value="practice">Practice / Problem Solving</option>
+                  <option value="lecture">Lecture / Theory</option>
+                  <option value="balanced">Balanced (50% Theory, 50% Practice)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[var(--ts)] mb-1">Session Notes</label>
+                <textarea
+                  rows={2}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Topics covered..."
+                  className="w-full bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl px-3 py-2 text-xs text-[var(--tp)] outline-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 bg-[var(--bg-c2)] text-[var(--ts)] rounded-xl text-xs font-bold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-[var(--gold)] text-[var(--bg)] rounded-xl text-xs font-bold hover:bg-[var(--gold-hover)] flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Check className="w-3.5 h-3.5" /> Save Log (+100 XP)
+                </button>
+              </div>
+            </form>
           </div>
         )}
       </div>
-
-      <div className="bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl p-5 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div className="space-y-2">
-            <label className="block text-xs font-semibold text-[var(--ts)]">Study Subject / Topic</label>
-            <input
-              type="text"
-              value={subjectLabel}
-              onChange={(e) => setSubjectLabel(e.target.value)}
-              placeholder="e.g. Physics — Rotational Motion"
-              className="w-full bg-[var(--bg-c2)] border border-[var(--b)] focus:border-[var(--gold)] rounded-xl px-4 py-2.5 text-xs text-[var(--tp)] outline-none"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="block text-xs font-semibold text-[var(--ts)]">Study Platform</label>
-            <input
-              type="url"
-              value={urlInput}
-              onChange={(e) => setUrlInput(e.target.value)}
-              placeholder="https://www.pw.live/study-v2/batches"
-              className="w-full bg-[var(--bg-c2)] border border-[var(--b)] focus:border-[var(--gold)] rounded-xl px-4 py-2.5 text-xs text-[var(--tp)] outline-none"
-            />
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={handleLaunch}
-            className="px-5 py-2.5 bg-[var(--gold)] text-[var(--bg)] font-bold text-xs rounded-xl hover:bg-[var(--gold-hover)] transition-all flex items-center gap-2 cursor-pointer"
-          >
-            <Rocket className="w-4 h-4" /> Start Focus Session
-          </button>
-
-          {!isSessionActive && (
-            <>
-              {QUICK_LINKS.map((l) => (
-                <a
-                  key={l.url}
-                  href={l.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2.5 bg-[var(--bg-c2)] border border-[var(--b)] hover:border-[var(--bh)] text-[var(--tp)] font-bold text-xs rounded-xl transition-all flex items-center gap-1.5"
-                >
-                  <ExternalLink className="w-3.5 h-3.5 text-[var(--gold)]" /> {l.label}
-                </a>
-              ))}
-            </>
-          )}
-        </div>
-      </div>
-
-      {isSessionActive && (
-        <div className="bg-[var(--gold-muted)] border border-[var(--gold-border)] rounded-2xl p-4 flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-4">
-            <span
-              className={`w-3 h-3 rounded-full ${
-                isPaused ? 'bg-[var(--warning)] animate-pulse' : 'bg-[var(--success)] animate-ping'
-              }`}
-            />
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold tracking-wider text-[var(--tm)] uppercase">
-                  {isPaused ? 'SESSION PAUSED' : 'SESSION IN PROGRESS'}
-                </span>
-                <span className="pill">{subjectLabel}</span>
-              </div>
-              <div id="mainTimer" className="font-mono text-2xl font-black text-[var(--gold)]">
-                {formatTimer(elapsedMsRef.current)}
-              </div>
-              {isPaused && (
-                <div className="flex items-center gap-2">
-                  <Coffee className="w-3.5 h-3.5 text-[var(--warning)]" />
-                  <span className="text-[10px] text-[var(--warning)] font-bold">Break: {formatBreak(breakMsRef.current)}</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleTogglePause}
-              className="px-4 py-2 bg-[var(--gold-muted)] text-[var(--warning)] border border-[var(--gold-border)] hover:bg-[var(--gold-muted)] rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer"
-            >
-              {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
-              {isPaused ? 'Resume' : 'Pause'}
-            </button>
-            <button
-              onClick={handleEndSession}
-              className="px-4 py-2 bg-[rgba(184,84,80,0.15)] text-[var(--error)] border border-[var(--error)] hover:bg-[rgba(184,84,80,0.25)] rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer"
-            >
-              <Square className="w-4 h-4 fill-current" /> End & Save Log
-            </button>
-          </div>
-        </div>
-      )}
-
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <form
-            onSubmit={handleSaveModalSession}
-            className="bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl p-6 w-full max-w-md space-y-4"
-          >
-            <h3 className="text-base font-extrabold text-[var(--gold)] flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-[var(--gold)]" /> Session Completed!
-            </h3>
-            <p className="text-xs text-[var(--ts)]">Log your session details to update your study tracker and claim XP.</p>
-
-            <div className="bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl p-3 flex items-center justify-between">
-              <span className="text-xs font-semibold text-[var(--ts)]">Active Study Time</span>
-              <span className="font-mono text-base font-extrabold text-[var(--gold)]">{pendingHours} hrs</span>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-[var(--ts)] mb-1">Questions Solved</label>
-              <input
-                type="number"
-                min="0"
-                value={questions}
-                onChange={(e) => setQuestions(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
-                placeholder="0"
-                className="w-full bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl px-3 py-2 text-xs text-[var(--tp)] font-mono outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-[var(--ts)] mb-1">Session Focus</label>
-              <select
-                value={ratio}
-                onChange={(e) => setRatio(e.target.value as 'practice' | 'lecture' | 'balanced')}
-                className="w-full bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl px-3 py-2 text-xs text-[var(--tp)] outline-none"
-              >
-                <option value="practice">Practice / Problem Solving</option>
-                <option value="lecture">Lecture / Theory</option>
-                <option value="balanced">Balanced (50% Theory, 50% Practice)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-[var(--ts)] mb-1">Session Notes</label>
-              <textarea
-                rows={2}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Topics covered..."
-                className="w-full bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl px-3 py-2 text-xs text-[var(--tp)] outline-none"
-              />
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 bg-[var(--bg-c2)] text-[var(--ts)] rounded-xl text-xs font-bold cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-5 py-2 bg-[var(--gold)] text-[var(--bg)] rounded-xl text-xs font-bold hover:bg-[var(--gold-hover)] flex items-center gap-1.5 cursor-pointer"
-              >
-                <Check className="w-3.5 h-3.5" /> Save Log (+100 XP)
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
     </div>
   );
 };

@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   Lock,
 } from 'lucide-react';
+import { TiltCard } from './TiltCard';
 
 export const BadgesView: React.FC = () => {
   const [state, setState] = useState(store.getState());
@@ -140,45 +141,47 @@ export const BadgesView: React.FC = () => {
                   : 'bg-[var(--bg-c)] border-[var(--b)] opacity-50 grayscale'
               }`}
             >
-              <div className="flex items-start justify-between">
-                <div className="p-2.5 rounded-xl bg-[var(--bg-c2)] border border-[var(--b)]">
-                  {getBadgeIcon(badge.id)}
+              <TiltCard className="h-full" glare maxTilt={4} perspective={1000}>
+                <div className="flex items-start justify-between">
+                  <div className="p-2.5 rounded-xl bg-[var(--bg-c2)] border border-[var(--b)]">
+                    {getBadgeIcon(badge.id)}
+                  </div>
+                  <span
+                    className={`text-[10px] px-2 py-0.5 rounded-full border uppercase font-bold tracking-wider ${
+                      rarityPill[badge.rarity] || rarityPill.common
+                    }`}
+                  >
+                    {badge.rarity}
+                  </span>
                 </div>
-                <span
-                  className={`text-[10px] px-2 py-0.5 rounded-full border uppercase font-bold tracking-wider ${
-                    rarityPill[badge.rarity] || rarityPill.common
-                  }`}
-                >
-                  {badge.rarity}
-                </span>
-              </div>
 
-              <div>
-                <h4 className="font-bold text-sm text-[var(--tp)] mb-1 flex items-center gap-1.5">
-                  {badge.name}
-                  {isUnlocked && <CheckCircle2 className="w-3.5 h-3.5 text-[var(--success)] inline" />}
-                </h4>
-                <p className="text-xs text-[var(--ts)] leading-relaxed">{badge.description}</p>
-              </div>
+                <div>
+                  <h4 className="font-bold text-sm text-[var(--tp)] mb-1 flex items-center gap-1.5">
+                    {badge.name}
+                    {isUnlocked && <CheckCircle2 className="w-3.5 h-3.5 text-[var(--success)] inline" />}
+                  </h4>
+                  <p className="text-xs text-[var(--ts)] leading-relaxed">{badge.description}</p>
+                </div>
 
-              <div className="pt-2 border-t border-[var(--b)] flex items-center justify-between text-[11px] text-[var(--tm)]">
-                <span>Status</span>
-                <span
-                  className={`font-semibold flex items-center gap-1 ${
-                    isUnlocked ? 'text-[var(--success)]' : 'text-[var(--tm)]'
-                  }`}
-                >
-                  {isUnlocked ? (
-                    <>
-                      <CheckCircle2 className="w-3 h-3 text-[var(--success)]" /> Unlocked
-                    </>
-                  ) : (
-                    <>
-                      <Lock className="w-3 h-3 text-[var(--ts)]" /> Locked
-                    </>
-                  )}
-                </span>
-              </div>
+                <div className="pt-2 border-t border-[var(--b)] flex items-center justify-between text-[11px] text-[var(--tm)]">
+                  <span>Status</span>
+                  <span
+                    className={`font-semibold flex items-center gap-1 ${
+                      isUnlocked ? 'text-[var(--success)]' : 'text-[var(--tm)]'
+                    }`}
+                  >
+                    {isUnlocked ? (
+                      <>
+                        <CheckCircle2 className="w-3 h-3 text-[var(--success)]" /> Unlocked
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-3 h-3 text-[var(--ts)]" /> Locked
+                      </>
+                    )}
+                  </span>
+                </div>
+              </TiltCard>
             </motion.div>
           );
         })}

@@ -5,6 +5,7 @@ import { store } from '../store';
 import { StageKey } from '../types';
 import { getPyqSolvedCount } from '../utils/calculations';
 import { Check, Trash2, Pin, Sparkles } from 'lucide-react';
+import { TiltCard } from './TiltCard';
 
 interface BacklogViewProps {
   onShowToast: (msg: string, type?: string, onUndo?: () => void) => void;
@@ -65,50 +66,52 @@ export const BacklogView: React.FC<BacklogViewProps> = ({ onShowToast }) => {
                 transition={{ duration: 0.25, delay: backlogChapters.indexOf(ch) * 0.04 }}
                 className="bg-[var(--bg-c)] border border-[var(--warning)] rounded-2xl p-5 flex items-center justify-between gap-4 flex-wrap"
               >
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-extrabold text-base text-[var(--tp)]">{ch.name}</span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[var(--bg-c2)] text-[var(--info)] border border-[var(--b)]">
-                      {ch.sub.toUpperCase()} • Class {ch.cls}
-                    </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[var(--gold-muted)] text-[var(--warning)] border border-[var(--gold-border)]">
-                      {ch.weight} Weight
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-3 text-xs text-[var(--ts)] mt-2">
-                    {stages.map((st) => (
-                      <span
-                        key={st.k}
-                        className={`flex items-center gap-1 font-medium ${
-                          cd.stages[st.k] ? 'text-[var(--success)] font-bold' : 'text-[var(--tm)]'
-                        }`}
-                      >
-                        <Check
-                          className={`w-3.5 h-3.5 ${
-                            cd.stages[st.k] ? 'text-[var(--success)]' : 'text-[var(--b)]'
-                          }`}
-                        />
-                        {st.label}
+                <TiltCard className="flex w-full items-center justify-between gap-4 flex-wrap">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-extrabold text-base text-[var(--tp)]">{ch.name}</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[var(--bg-c2)] text-[var(--info)] border border-[var(--b)]">
+                        {ch.sub.toUpperCase()} • Class {ch.cls}
                       </span>
-                    ))}
-                  </div>
-                </div>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[var(--gold-muted)] text-[var(--warning)] border border-[var(--gold-border)]">
+                        {ch.weight} Weight
+                      </span>
+                    </div>
 
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => {
-                      const wasBacklog = cd.backlog;
-                      store.toggleBacklog(ch.id);
-                      onShowToast('Cleared from Backlog!', 'emerald', wasBacklog ? () => {
+                    <div className="flex items-center gap-3 text-xs text-[var(--ts)] mt-2">
+                      {stages.map((st) => (
+                        <span
+                          key={st.k}
+                          className={`flex items-center gap-1 font-medium ${
+                            cd.stages[st.k] ? 'text-[var(--success)] font-bold' : 'text-[var(--tm)]'
+                          }`}
+                        >
+                          <Check
+                            className={`w-3.5 h-3.5 ${
+                              cd.stages[st.k] ? 'text-[var(--success)]' : 'text-[var(--b)]'
+                            }`}
+                          />
+                          {st.label}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => {
+                        const wasBacklog = cd.backlog;
                         store.toggleBacklog(ch.id);
-                      } : undefined);
-                    }}
-                    className="px-4 py-2 bg-[rgba(74,158,122,0.15)] text-[var(--success)] border border-[var(--success)] hover:bg-[rgba(74,158,122,0.25)] rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" /> Resolve & Remove
-                  </button>
-                </div>
+                        onShowToast('Cleared from Backlog!', 'emerald', wasBacklog ? () => {
+                          store.toggleBacklog(ch.id);
+                        } : undefined);
+                      }}
+                      className="px-4 py-2 bg-[rgba(74,158,122,0.15)] text-[var(--success)] border border-[var(--success)] hover:bg-[rgba(74,158,122,0.25)] rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> Resolve & Remove
+                    </button>
+                  </div>
+                </TiltCard>
               </motion.div>
             );
           })}

@@ -4,6 +4,7 @@ import { calcUserLevel, getWeakChapters, calcOverallPct } from '../utils/calcula
 import { BADGE_DEFINITIONS } from '../data/badges';
 import { BookOpen, Flame, Trophy, Target, Clock, Plus, Zap, AlertTriangle } from 'lucide-react';
 import { motion } from 'motion/react';
+import { TiltCard } from './TiltCard';
 
 interface DashboardViewProps {
   onShowToast: (msg: string, type?: string) => void;
@@ -73,14 +74,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onShowToast, onOpe
           transition={{ duration: 0.3 }}
           className="bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl p-5 flex items-center gap-4"
         >
-          <div className="w-12 h-12 rounded-xl bg-[var(--gold)] text-[var(--bg)] font-black text-xl flex items-center justify-center flex-shrink-0">
-            {level}
-          </div>
-          <div className="min-w-0">
-            <div className="text-[10px] text-[var(--gold)] font-bold uppercase tracking-widest">Level {level}</div>
-            <div className="text-sm font-bold text-[var(--tp)] truncate">{levelTitle}</div>
-            <div className="text-xs text-[var(--ts)] font-mono">{state.xp.toLocaleString()} XP</div>
-          </div>
+          <TiltCard className="h-full w-full">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-[var(--gold)] text-[var(--bg)] font-black text-xl flex items-center justify-center flex-shrink-0">
+                {level}
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] text-[var(--gold)] font-bold uppercase tracking-widest">Level {level}</div>
+                <div className="text-sm font-bold text-[var(--tp)] truncate">{levelTitle}</div>
+                <div className="text-xs text-[var(--ts)] font-mono">{state.xp.toLocaleString()} XP</div>
+              </div>
+            </div>
+          </TiltCard>
         </motion.div>
 
         {/* Overall Progress */}
@@ -90,19 +95,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onShowToast, onOpe
           transition={{ duration: 0.3, delay: 0.04 }}
           className="bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl p-5"
         >
-          <div className="text-[10px] text-[var(--tm)] font-bold uppercase tracking-widest mb-2">Overall Completion</div>
-          <div className="flex items-end gap-2">
-            <span className="text-2xl font-black text-[var(--tp)] font-mono">{overallPct}%</span>
-            <span className="text-xs text-[var(--ts)] mb-1">across all subjects</span>
-          </div>
-          <div className="w-full h-2 bg-[var(--bg-c3)] rounded-full overflow-hidden mt-3">
-            <motion.div
-              className="h-full bg-[var(--gold)] rounded-full"
-              initial={{ width: 0 }}
-              animate={{ width: `${overallPct}%` }}
-              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            />
-          </div>
+          <TiltCard className="h-full">
+            <div>
+              <div className="text-[10px] text-[var(--tm)] font-bold uppercase tracking-widest mb-2">Overall Completion</div>
+              <div className="flex items-end gap-2">
+                <span className="text-2xl font-black text-[var(--tp)] font-mono">{overallPct}%</span>
+                <span className="text-xs text-[var(--ts)] mb-1">across all subjects</span>
+              </div>
+              <div className="w-full h-2 bg-[var(--bg-c3)] rounded-full overflow-hidden mt-3">
+                <motion.div
+                  className="h-full bg-[var(--gold)] rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${overallPct}%` }}
+                  transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                />
+              </div>
+            </div>
+          </TiltCard>
         </motion.div>
 
         {/* Today's Study Progress */}
@@ -112,25 +121,29 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onShowToast, onOpe
           transition={{ duration: 0.3, delay: 0.08 }}
           className="bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl p-5"
         >
-          <div className="text-[10px] text-[var(--tm)] font-bold uppercase tracking-widest mb-2">Today&apos;s Goal</div>
-          <div className="flex items-end gap-2">
-            <span className="text-2xl font-black text-[var(--tp)] font-mono">{todayHours}h</span>
-            <span className="text-xs text-[var(--ts)] mb-1">/ {dailyTarget}h target</span>
-          </div>
-          <div className="w-full h-2 bg-[var(--bg-c3)] rounded-full overflow-hidden mt-3">
-            <motion.div
-              className="h-full bg-[var(--success)] rounded-full"
-              initial={{ width: 0 }}
-              animate={{ width: `${targetPct}%` }}
-              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            />
-          </div>
-          <button
-            onClick={handleQuickLog}
-            className="mt-3 w-full py-2 bg-[var(--gold)] text-[var(--bg)] text-xs font-bold rounded-xl hover:bg-[var(--gold-hover)] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" /> Quick Log Session
-          </button>
+          <TiltCard className="h-full">
+            <div>
+              <div className="text-[10px] text-[var(--tm)] font-bold uppercase tracking-widest mb-2">Today&apos;s Goal</div>
+              <div className="flex items-end gap-2">
+                <span className="text-2xl font-black text-[var(--tp)] font-mono">{todayHours}h</span>
+                <span className="text-xs text-[var(--ts)] mb-1">/ {dailyTarget}h target</span>
+              </div>
+              <div className="w-full h-2 bg-[var(--bg-c3)] rounded-full overflow-hidden mt-3">
+                <motion.div
+                  className="h-full bg-[var(--success)] rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${targetPct}%` }}
+                  transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                />
+              </div>
+              <button
+                onClick={handleQuickLog}
+                className="mt-3 w-full py-2 bg-[var(--gold)] text-[var(--bg)] text-xs font-bold rounded-xl hover:bg-[var(--gold-hover)] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" /> Quick Log Session
+              </button>
+            </div>
+          </TiltCard>
         </motion.div>
       </div>
 
@@ -147,14 +160,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onShowToast, onOpe
               transition={{ duration: 0.3 }}
               className="bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl p-4 flex items-center justify-between"
             >
-              <div>
-                <div className="text-[10px] text-[var(--tm)] font-bold uppercase tracking-widest">{item.label}</div>
-                <div className="text-xs text-[var(--ts)] mt-0.5">{item.date}</div>
-              </div>
-              <div className="text-right">
-                <div className="text-lg font-black font-mono" style={{ color }}>{days}d</div>
-                <div className="text-[10px] text-[var(--tm)] font-mono">{hours}h remaining</div>
-              </div>
+              <TiltCard className="flex w-full items-center justify-between">
+                <div>
+                  <div className="text-[10px] text-[var(--tm)] font-bold uppercase tracking-widest">{item.label}</div>
+                  <div className="text-xs text-[var(--ts)] mt-0.5">{item.date}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-lg font-black font-mono" style={{ color }}>{days}d</div>
+                  <div className="text-[10px] text-[var(--tm)] font-mono">{hours}h remaining</div>
+                </div>
+              </TiltCard>
             </motion.div>
           );
         })}
@@ -169,32 +184,36 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onShowToast, onOpe
           transition={{ duration: 0.3, delay: 0.1 }}
           className="bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl p-5 space-y-3"
         >
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-[var(--warning)]" />
-            <h3 className="text-sm font-extrabold text-[var(--tp)]">Priority Review</h3>
-          </div>
-          {weakChapters.length === 0 ? (
-            <p className="text-xs text-[var(--tm)]">No weak topics identified yet. Keep tracking to get recommendations.</p>
-          ) : (
-            <div className="space-y-2">
-              {weakChapters.map((w) => {
-                const ch = state.chapters[w.chId];
-                return (
-                  <button
-                    key={w.chId}
-                    onClick={() => {
-                      if (onSelectChapter) onSelectChapter(w.chId);
-                      onShowToast('Opening chapter in Syllabus Tracker...', 'cyan');
-                    }}
-                    className="flex w-full items-center justify-between text-xs bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl px-3 py-2 hover:border-[var(--bh)] transition-colors cursor-pointer text-left"
-                  >
-                    <span className="font-semibold text-[var(--tp)]">{w.chId.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}</span>
-                    <span className="text-[var(--ts)]">{w.reason}</span>
-                  </button>
-                );
-              })}
+          <TiltCard className="h-full">
+            <div>
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-[var(--warning)]" />
+                <h3 className="text-sm font-extrabold text-[var(--tp)]">Priority Review</h3>
+              </div>
+              {weakChapters.length === 0 ? (
+                <p className="text-xs text-[var(--tm)]">No weak topics identified yet. Keep tracking to get recommendations.</p>
+              ) : (
+                <div className="space-y-2">
+                  {weakChapters.map((w) => {
+                    const ch = state.chapters[w.chId];
+                    return (
+                      <button
+                        key={w.chId}
+                        onClick={() => {
+                          if (onSelectChapter) onSelectChapter(w.chId);
+                          onShowToast('Opening chapter in Syllabus Tracker...', 'cyan');
+                        }}
+                        className="flex w-full items-center justify-between text-xs bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl px-3 py-2 hover:border-[var(--bh)] transition-colors cursor-pointer text-left"
+                      >
+                        <span className="font-semibold text-[var(--tp)]">{w.chId.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}</span>
+                        <span className="text-[var(--ts)]">{w.reason}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          )}
+          </TiltCard>
         </motion.div>
 
         {/* Recent Badges */}
@@ -204,25 +223,29 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onShowToast, onOpe
           transition={{ duration: 0.3, delay: 0.14 }}
           className="bg-[var(--bg-c)] border border-[var(--b)] rounded-2xl p-5 space-y-3"
         >
-          <div className="flex items-center gap-2">
-            <Trophy className="w-4 h-4 text-[var(--gold)]" />
-            <h3 className="text-sm font-extrabold text-[var(--tp)]">Recent Achievements</h3>
-          </div>
-          {recentBadges.length === 0 ? (
-            <p className="text-xs text-[var(--tm)]">No badges unlocked yet. Complete chapter stages to earn badges.</p>
-          ) : (
-            <div className="space-y-2">
-              {recentBadges.map((badge) => (
-                <div key={badge.id} className="flex items-center gap-3 text-xs bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl px-3 py-2">
-                  <Zap className="w-4 h-4 text-[var(--gold)]" />
-                  <div>
-                    <div className="font-semibold text-[var(--tp)]">{badge.name}</div>
-                    <div className="text-[var(--ts)]">{badge.description}</div>
-                  </div>
+          <TiltCard className="h-full">
+            <div>
+              <div className="flex items-center gap-2">
+                <Trophy className="w-4 h-4 text-[var(--gold)]" />
+                <h3 className="text-sm font-extrabold text-[var(--tp)]">Recent Achievements</h3>
+              </div>
+              {recentBadges.length === 0 ? (
+                <p className="text-xs text-[var(--tm)]">No badges unlocked yet. Complete chapter stages to earn badges.</p>
+              ) : (
+                <div className="space-y-2">
+                  {recentBadges.map((badge) => (
+                    <div key={badge.id} className="flex items-center gap-3 text-xs bg-[var(--bg-c2)] border border-[var(--b)] rounded-xl px-3 py-2">
+                      <Zap className="w-4 h-4 text-[var(--gold)]" />
+                      <div>
+                        <div className="font-semibold text-[var(--tp)]">{badge.name}</div>
+                        <div className="text-[var(--ts)]">{badge.description}</div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
-          )}
+          </TiltCard>
         </motion.div>
       </div>
 
@@ -233,32 +256,34 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onShowToast, onOpe
         transition={{ duration: 0.3, delay: 0.18 }}
         className="bg-[var(--bg-c)] border border-[var(--gold-border)] rounded-2xl p-5 flex items-center justify-between flex-wrap gap-4"
       >
-        <div className="flex items-center gap-3">
-          <Flame className="w-5 h-5 text-[var(--warning)]" />
-          <div>
-            <div className="text-xs font-bold text-[var(--tp)]">Current Streak</div>
-            <div className="text-lg font-black text-[var(--tp)] font-mono">
-              {state.streak.count} days
-              {state.streak.freezes > 0 && (
-                <span className="text-xs text-[var(--warning)] ml-2 font-semibold">+{state.streak.freezes} freeze{state.streak.freezes > 1 ? 's' : ''}</span>
-              )}
+        <TiltCard className="flex w-full items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-3">
+            <Flame className="w-5 h-5 text-[var(--warning)]" />
+            <div>
+              <div className="text-xs font-bold text-[var(--tp)]">Current Streak</div>
+              <div className="text-lg font-black text-[var(--tp)] font-mono">
+                {state.streak.count} days
+                {state.streak.freezes > 0 && (
+                  <span className="text-xs text-[var(--warning)] ml-2 font-semibold">+{state.streak.freezes} freeze{state.streak.freezes > 1 ? 's' : ''}</span>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => onShowToast('Quick log: use Study Hours for detailed logging.', 'amber')}
-            className="px-4 py-2 bg-[var(--gold)] text-[var(--bg)] text-xs font-bold rounded-xl hover:bg-[var(--gold-hover)] transition-all flex items-center gap-1.5 cursor-pointer"
-          >
-            <Clock className="w-3.5 h-3.5" /> Log Study Session
-          </button>
-          <button
-            onClick={() => onShowToast('Opening Mock Tests...', 'cyan')}
-            className="px-4 py-2 bg-[var(--bg-c2)] border border-[var(--b)] text-[var(--tp)] text-xs font-bold rounded-xl hover:border-[var(--bh)] transition-all flex items-center gap-1.5 cursor-pointer"
-          >
-            <Target className="w-3.5 h-3.5 text-[var(--gold)]" /> Take a Mock Test
-          </button>
-        </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onShowToast('Quick log: use Study Hours for detailed logging.', 'amber')}
+              className="px-4 py-2 bg-[var(--gold)] text-[var(--bg)] text-xs font-bold rounded-xl hover:bg-[var(--gold-hover)] transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <Clock className="w-3.5 h-3.5" /> Log Study Session
+            </button>
+            <button
+              onClick={() => onShowToast('Opening Mock Tests...', 'cyan')}
+              className="px-4 py-2 bg-[var(--bg-c2)] border border-[var(--b)] text-[var(--tp)] text-xs font-bold rounded-xl hover:border-[var(--bh)] transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <Target className="w-3.5 h-3.5 text-[var(--gold)]" /> Take a Mock Test
+            </button>
+          </div>
+        </TiltCard>
       </motion.div>
     </div>
   );
