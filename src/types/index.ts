@@ -137,4 +137,13 @@ export interface AppState {
   focusUrl?: string;
   prayasLectures: Record<string, boolean>;
   prayasAttemptedIds: string[];
+  focusSession?: {
+    isActive: boolean;
+    isPaused: boolean;
+    startTimestamp: number | null;
+    pausedAccumulatedMs: number;
+    selectedSubject: string;
+    platformUrl: string;
+    isPipOpen: boolean;
+  };
 }

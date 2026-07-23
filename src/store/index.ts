@@ -22,7 +22,7 @@ export function getLocalDateString(d: Date = new Date()): string {
 
 export function getDefaultState(): AppState {
   return {
-    version: 5,
+    version: 6,
     chapters: {},
     tests: [],
     studyLogs: [],
@@ -36,6 +36,15 @@ export function getDefaultState(): AppState {
     mistakes: [],
     prayasLectures: {},
     prayasAttemptedIds: [],
+    focusSession: {
+      isActive: false,
+      isPaused: false,
+      startTimestamp: null,
+      pausedAccumulatedMs: 0,
+      selectedSubject: 'General',
+      platformUrl: '',
+      isPipOpen: false,
+    },
   };
 }
 
@@ -83,6 +92,7 @@ class Store {
           focusUrl: parsed.focusUrl || defaultState.focusUrl,
           prayasLectures: typeof parsed.prayasLectures === 'object' && parsed.prayasLectures !== null ? parsed.prayasLectures : {},
           prayasAttemptedIds: Array.isArray(parsed.prayasAttemptedIds) ? parsed.prayasAttemptedIds : [],
+          focusSession: typeof parsed.focusSession === 'object' && parsed.focusSession !== null ? parsed.focusSession : defaultState.focusSession,
         };
         return merged;
       }
@@ -331,6 +341,67 @@ class Store {
 
   public isPrayasTestAttempted(scheduledTestId: string): boolean {
     return this.state.prayasAttemptedIds.includes(scheduledTestId);
+  }
+
+  public startFocusSession(config: { selectedSubject: string; platformUrl: string }): void {
+    this.state.focusSession = {
+      isActive: true,
+      isPaused: false,
+      startTimestamp: Date.now(),
+      pausedAccumulatedMs: 0,
+      selectedSubject: config.selectedSubject,
+      platformUrl: config.platformUrl,
+      isPipOpen: false,
+    };
+    this.notify();
+  }
+
+  public pauseFocusSession(): void {
+    if (!this.state.focusSession?.isActive || this.state.focusSession.isPaused) return;
+    const fs = this.state.focusSession;
+    const accumulated = fs.pausedAccumulatedMs + (Date.now() - (fs.startTimestamp ?? Date.now()));
+    this.state.focusSession = {
+      ...fs,
+      isPaused: true,
+      pausedAccumulatedMs: accumulated,
+      startTimestamp: null,
+    };
+    this.notify();
+  }
+
+  public resumeFocusSession(): void {
+    if (!this.state.focusSession?.isActive || !this.state.focusSession.isPaused) return;
+    this.state.focusSession = {
+      ...this.state.focusSession,
+      isPaused: false,
+      startTimestamp: Date.now(),
+    };
+    this.notify();
+  }
+
+  public endFocusSession(): void {
+    this.state.focusSession = {
+      isActive: false,
+      isPaused: false,
+      startTimestamp: null,
+      pausedAccumulatedMs: 0,
+      selectedSubject: 'General',
+      platformUrl: '',
+      isPipOpen: false,
+    };
+    this.notify();
+  }
+
+  public toggleFocusPip(isOpen: boolean): void {
+    if (!this.state.focusSession) return;
+    this.state.focusSession.isPipOpen = isOpen;
+    this.notify();
+  }
+
+  public updateFocusSession(updater: (draft: AppState['focusSession']) => void): void {
+    if (!this.state.focusSession) return;
+    updater(this.state.focusSession);
+    this.notify();
   }
 
   public updateStreak(): void {

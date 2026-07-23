@@ -26,6 +26,13 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
+function formatTimer(ms: number): string {
+  const hh = Math.floor(ms / 3600000);
+  const mm = Math.floor((ms % 3600000) / 60000);
+  const ss = Math.floor((ms % 60000) / 1000);
+  return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+}
+
 const TAB_TITLES: Record<string, string> = {
   dashboard: 'Dashboard',
   syllabus: 'Syllabus Tracker',
@@ -51,7 +58,9 @@ export function App() {
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
   const [isLight, setIsLight] = useState(document.documentElement.classList.contains('light'));
   const [appState, setAppState] = useState(store.getState());
+  const [focusDisplayMs, setFocusDisplayMs] = useState(0);
   const prevBadgeIdsRef = useRef<Set<string>>(new Set());
+  const masterTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     const currentIds = new Set<string>();
@@ -75,6 +84,35 @@ export function App() {
     const unsubscribe = store.subscribe(() => setAppState(store.getState()));
     return unsubscribe;
   }, []);
+
+  useEffect(() => {
+    const fs = appState.focusSession;
+    if (!fs || !fs.isActive) {
+      if (masterTimerRef.current) {
+        clearInterval(masterTimerRef.current);
+        masterTimerRef.current = null;
+      }
+      return;
+    }
+
+    const tick = () => {
+      const now = Date.now();
+      const ms = fs.isPaused
+        ? fs.pausedAccumulatedMs
+        : fs.pausedAccumulatedMs + (now - (fs.startTimestamp ?? now));
+      setFocusDisplayMs(Math.max(0, ms));
+    };
+
+    tick();
+    masterTimerRef.current = window.setInterval(tick, 250);
+
+    return () => {
+      if (masterTimerRef.current) {
+        clearInterval(masterTimerRef.current);
+        masterTimerRef.current = null;
+      }
+    };
+  }, [appState.focusSession?.isActive, appState.focusSession?.isPaused, appState.focusSession?.startTimestamp, appState.focusSession?.pausedAccumulatedMs]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -165,6 +203,15 @@ export function App() {
 
           {/* Right: Stats & Toggles */}
           <div className="flex items-center gap-2 flex-shrink-0">
+            {appState.focusSession?.isActive && (
+              <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[rgba(74,158,122,0.15)] border border-[var(--success)] text-[var(--success)]">
+                <span className="w-2 h-2 rounded-full bg-[var(--success)] animate-ping" />
+                <span className="text-[10px] font-mono font-bold">
+                  Focus Active: {formatTimer(focusDisplayMs)}
+                </span>
+              </div>
+            )}
+
             <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[var(--bg-c2)] border border-[var(--b)]">
               <Flame className="w-3.5 h-3.5 text-[var(--warning)]" />
               <span className="text-xs font-mono font-bold text-[var(--tp)]">{appState.streak.count}d</span>
@@ -205,7 +252,13 @@ export function App() {
               {activeTab === 'goals' && <GoalsView />}
               {activeTab === 'badges' && <BadgesView />}
               {activeTab === 'study' && <StudyHoursView onShowToast={showToast} />}
-              {activeTab === 'focus' && <FocusPortalView onShowToast={showToast} />}
+              {activeTab === 'focus' && (
+                <FocusPortalView
+                  onShowToast={showToast}
+                  focusSession={appState.focusSession}
+                  focusDisplayMs={focusDisplayMs}
+                />
+              )}
               {activeTab === 'prayas' && <PrayasLectureTrackerView onShowToast={showToast} />}
               {activeTab === 'settings' && <SettingsView onShowToast={showToast} />}
             </motion.div>
